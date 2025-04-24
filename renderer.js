@@ -17,7 +17,7 @@ const playButton = document.getElementById("btn-play");
 const newFileInFolderButton = document.getElementById("btn-new-file-in-folder");
 const newFolderButton = document.getElementById("btn-new-folder");
 const toggleOutputButton = document.getElementById("btn-toggle-output");
-const clearOutputButton = document.getElementById("btn-clear-output"); // Fixed ID typo
+const clearOutputButton = document.getElementById("btn-clear-output");
 const toggleSidebarButton = document.getElementById("btn-toggle-sidebar");
 const settingsButton = document.getElementById("btn-settings");
 const settingsDialog = document.getElementById("settings-dialog");
@@ -25,123 +25,134 @@ const themeSelector = document.getElementById("theme-selector");
 const closeSettingsButton = document.getElementById("btn-close-settings");
 const introMessage = document.getElementById("intro-message");
 
+console.log("Renderer script loaded");
+
 (async () => {
   if (!window.electronAPI) {
     console.error("FATAL: electronAPI is undefined. Check preload.js loading.");
-    document.getElementById("output-area").textContent =
-      "Error: Electron API not available. Ensure preload.js loads correctly. Check Console (F12) for details.";
+    outputArea.textContent =
+      "Error: Electron API not available. Ensure preload.js loads correctly.";
     return;
   }
 
   console.log("Waiting for Monaco loader...");
-  while (
-    typeof require === "undefined" ||
-    typeof require.config === "undefined"
-  ) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  console.log("Monaco loader ready.");
+  try {
+    // Monaco is loaded via index.html
+    if (
+      typeof require === "undefined" ||
+      typeof require.config === "undefined"
+    ) {
+      throw new Error("Monaco loader not available");
+    }
+    console.log("Monaco loader ready.");
 
-  require(["vs/editor/editor.main"], async function () {
-    console.log("Monaco editor.main loaded.");
-    try {
-      const platformInfo = await window.electronAPI.getPlatform();
-      pathSep = platformInfo.pathSep;
-      const platform = platformInfo.platform;
-      console.log(`Running on ${platform}, path separator: ${pathSep}`);
+    require.config({
+      paths: {
+        vs: "node_modules/monaco-editor/min/vs",
+      },
+    });
 
-      if (!editorContainer) {
-        console.error("Editor container not found!");
-        document.getElementById("output-area").textContent =
-          "Error: Editor container not found.";
-        return;
-      }
-
+    require(["vs/editor/editor.main"], async function () {
+      console.log("Monaco editor.main loaded.");
       try {
-        editor = monaco.editor.create(editorContainer, {
-          model: null,
-          language: "c",
-          theme: "vs-dark",
-          automaticLayout: true,
-          contextmenu: true,
-          minimap: { enabled: true },
-        });
-        console.log("Monaco Editor initialized.");
-      } catch (monacoError) {
-        console.error("Failed to initialize Monaco Editor:", monacoError);
-        document.getElementById("output-area").textContent =
-          "Error: Failed to initialize editor.";
-        return;
-      }
+        const platformInfo = await window.electronAPI.getPlatform();
+        pathSep = platformInfo.pathSep;
+        console.log(
+          `Running on ${platformInfo.platform}, path separator: ${pathSep}`
+        );
 
-      const isSidebarCollapsed = await window.electronAPI.getSettings(
-        "sidebarCollapsed",
-        false
-      );
-      const isOutputCollapsed = await window.electronAPI.getSettings(
-        "outputCollapsed",
-        false
-      );
-
-      if (isSidebarCollapsed) toggleSidebar(true);
-      if (isOutputCollapsed) toggleOutput(true);
-
-      const selectedTheme = await window.electronAPI.getSettings(
-        "selectedTheme",
-        "style.css"
-      );
-      console.log(`Restoring theme: ${selectedTheme}`);
-      await applyTheme(selectedTheme);
-
-      toggleIntroMessage();
-
-      editor.onDidChangeModelContent(() => {
-        if (activeTabId && openTabs.has(activeTabId)) {
-          const tabInfo = openTabs.get(activeTabId);
-          if (!tabInfo.isModified && !tabInfo.isPreview) {
-            setTabModified(activeTabId, true);
-          }
+        if (!editorContainer) {
+          console.error("Editor container not found!");
+          outputArea.textContent = "Error: Editor container not found.";
+          return;
         }
-      });
 
-      editor.onDidChangeModel((e) => {
-        let newActiveTabId = null;
-        const newModel = editor.getModel();
-        if (newModel) {
-          for (const [id, tabInfo] of openTabs.entries()) {
-            if (tabInfo.model === newModel) {
-              newActiveTabId = id;
-              break;
+        try {
+          editor = monaco.editor.create(editorContainer, {
+            model: null,
+            language: "c",
+            theme: "vs-dark",
+            automaticLayout: true,
+            contextmenu: true,
+            minimap: { enabled: true },
+          });
+          console.log("Monaco Editor initialized.");
+        } catch (monacoError) {
+          console.error("Failed to initialize Monaco Editor:", monacoError);
+          outputArea.textContent = "Error: Failed to initialize editor.";
+          return;
+        }
+
+        const isSidebarCollapsed = await window.electronAPI.getSettings(
+          "sidebarCollapsed",
+          false
+        );
+        const isOutputCollapsed = await window.electronAPI.getSettings(
+          "outputCollapsed",
+          false
+        );
+
+        if (isSidebarCollapsed) toggleSidebar(true);
+        if (isOutputCollapsed) toggleOutput(true);
+
+        const selectedTheme = await window.electronAPI.getSettings(
+          "selectedTheme",
+          "style.css"
+        );
+        console.log(`Restoring theme: ${selectedTheme}`);
+        await applyTheme(selectedTheme);
+
+        toggleIntroMessage();
+
+        editor.onDidChangeModelContent(() => {
+          if (activeTabId && openTabs.has(activeTabId)) {
+            const tabInfo = openTabs.get(activeTabId);
+            if (!tabInfo.isModified && !tabInfo.isPreview) {
+              setTabModified(activeTabId, true);
             }
           }
-        }
-        if (newActiveTabId !== activeTabId) {
-          setActiveTab(newActiveTabId, false);
-        }
-      });
+        });
 
-      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () =>
-        handleSaveFile()
-      );
-      editor.addCommand(
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB,
-        handlePlay
-      );
-    } catch (error) {
-      console.error("Initialization error:", error);
-      document.getElementById(
-        "output-area"
-      ).textContent = `Error: ${error.message}`;
-    }
+        editor.onDidChangeModel((e) => {
+          let newActiveTabId = null;
+          const newModel = editor.getModel();
+          if (newModel) {
+            for (const [id, tabInfo] of openTabs.entries()) {
+              if (tabInfo.model === newModel) {
+                newActiveTabId = id;
+                break;
+              }
+            }
+          }
+          if (newActiveTabId !== activeTabId) {
+            setActiveTab(newActiveTabId, false);
+          }
+        });
 
-    attachUIEventListeners();
-  }, (err) => {
-    console.error("Failed to load Monaco Editor:", err);
-    document.getElementById("output-area").textContent =
-      "Error: Failed to load Monaco Editor.";
-  });
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () =>
+          handleSaveFile()
+        );
+        editor.addCommand(
+          monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB,
+          handlePlay
+        );
+      } catch (error) {
+        console.error("Initialization error:", error);
+        outputArea.textContent = `Error: ${error.message}`;
+      }
+
+      attachUIEventListeners();
+    }, (err) => {
+      console.error("Failed to load Monaco Editor:", err);
+      outputArea.textContent = "Error: Failed to load Monaco Editor.";
+    });
+  } catch (error) {
+    console.error("Monaco loader error:", error);
+    outputArea.textContent = `Error loading Monaco: ${error.message}`;
+  }
 })();
 
+// Rest of the functions remain unchanged
 function getBaseName(filePath) {
   if (!filePath) return null;
   return filePath.substring(filePath.lastIndexOf(pathSep) + 1);

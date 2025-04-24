@@ -1,26 +1,83 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, protocol } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
 const { exec } = require("child_process");
 const util = require("util");
-const Store = require("electron-store").default;
+
+console.log("Main process starting...");
+console.log(`__dirname: ${__dirname}`);
+console.log(`App userData path: ${app.getPath("userData")}`);
+console.log(`Process versions: ${JSON.stringify(process.versions)}`);
+console.log(`Node module paths: ${module.paths.join(", ")}`);
 
 const execPromise = util.promisify(exec);
-const store = new Store();
+
+// Custom JSON storage
+const configPath = path.join(app.getPath("userData"), "arcade-ide-config.json");
+let config = { windowBounds: { width: 1100, height: 750 } };
+
+async function loadConfig() {
+  console.log(`Loading config from: ${configPath}`);
+  try {
+    const data = await fs.readFile(configPath, "utf-8");
+    config = JSON.parse(data);
+    console.log("Config loaded:", config);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error("Error loading config:", error);
+    }
+    console.log("Using default config");
+  }
+}
+
+async function saveConfig() {
+  console.log(`Saving config to: ${configPath}`);
+  try {
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+    console.log("Config saved");
+  } catch (error) {
+    console.error("Error saving config:", error);
+  }
+}
 
 let mainWindow;
 
 async function fileExists(filePath) {
   try {
     await fs.access(filePath, fs.constants.F_OK);
+    console.log(`File exists: ${filePath}`);
     return true;
   } catch (e) {
+    console.warn(`File does not exist: ${filePath}`);
     return false;
   }
 }
 
+function registerFileProtocol() {
+  console.log("Registering file protocol handler...");
+  protocol.registerFileProtocol("file", (request, callback) => {
+    const url = new URL(request.url);
+    const pathname = decodeURIComponent(url.pathname);
+    const resolvedPath = path.join(__dirname, pathname);
+    console.log(`File protocol request: ${request.url} -> ${resolvedPath}`);
+    callback({ path: resolvedPath });
+  });
+
+  protocol.registerFileProtocol("electron", (request, callback) => {
+    console.error(`Attempted to load electron: URL: ${request.url}`);
+    const url = new URL(request.url);
+    const pathname = decodeURIComponent(url.pathname);
+    const resolvedPath = path.join(__dirname, pathname);
+    console.log(`Redirecting electron: to file: ${resolvedPath}`);
+    callback({ path: resolvedPath });
+  });
+}
+
 async function createWindow() {
-  const savedBounds = store.get("windowBounds", { width: 1100, height: 750 });
+  console.log("Creating window...");
+  await loadConfig();
+  const savedBounds = config.windowBounds || { width: 1100, height: 750 };
+  console.log("Retrieved windowBounds from config:", savedBounds);
   const preloadPath = path.join(__dirname, "preload.js");
   console.log(`Attempting to load preload script from: ${preloadPath}`);
   const preloadExists = await fileExists(preloadPath);
@@ -29,25 +86,50 @@ async function createWindow() {
     dialog.showErrorBox("Error", `Preload script not found at: ${preloadPath}`);
     app.quit();
     return;
-  } else {
-    console.log(`Preload script found at: ${preloadPath}`);
   }
 
-  mainWindow = new BrowserWindow({
-    ...savedBounds,
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-    title: "Arcade IDE",
-    icon: path.join(__dirname, "icon.png"), // Add icon for Windows/Linux
-  });
+  const indexPath = path.join(__dirname, "index.html");
+  console.log(`Attempting to load index.html from: ${indexPath}`);
+  if (!(await fileExists(indexPath))) {
+    console.error(`index.html not found at: ${indexPath}`);
+    dialog.showErrorBox("Error", `index.html not found at: ${indexPath}`);
+    app.quit();
+    return;
+  }
 
-  mainWindow.setMenu(null);
+  const iconPath = path.join(__dirname, "icon.png");
+  console.log(`Attempting to load icon from: ${iconPath}`);
+  if (!(await fileExists(iconPath))) {
+    console.warn(
+      `Icon not found at: ${iconPath}, proceeding without custom icon`
+    );
+  }
 
-  mainWindow.loadFile("index.html");
+  try {
+    mainWindow = new BrowserWindow({
+      ...savedBounds,
+      webPreferences: {
+        preload: preloadPath,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+      title: "Arcade IDE",
+      icon: iconPath,
+    });
+
+    mainWindow.setMenu(null);
+
+    console.log(`Loading index.html from: ${indexPath}`);
+    await mainWindow.loadFile(indexPath);
+    console.log("index.html loaded successfully");
+  } catch (error) {
+    console.error(`Error in createWindow: ${error.message}`);
+    console.error(error.stack);
+    dialog.showErrorBox("Window Creation Error", error.message);
+    app.quit();
+    return;
+  }
 
   mainWindow.on("resized", saveBounds);
   mainWindow.on("moved", saveBounds);
@@ -58,32 +140,49 @@ async function createWindow() {
 
 function saveBounds() {
   if (mainWindow && !mainWindow.isMinimized() && !mainWindow.isDestroyed()) {
-    store.set("windowBounds", mainWindow.getBounds());
+    console.log("Saving windowBounds to config");
+    config.windowBounds = mainWindow.getBounds();
+    saveConfig();
   }
 }
 
 app.whenReady().then(() => {
-  createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  console.log("App is ready");
+  try {
+    registerFileProtocol();
+    createWindow();
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  } catch (error) {
+    console.error("Error during app initialization:", error);
+    console.error(error.stack);
+    dialog.showErrorBox("Initialization Error", error.message);
+    app.quit();
+  }
 });
 
 app.on("window-all-closed", () => {
-  store.delete("lastOpenFolder");
+  console.log("All windows closed");
+  delete config.lastOpenFolder;
+  saveConfig();
   if (process.platform !== "darwin") app.quit();
 });
 
-// IPC handlers (unchanged)
+// IPC handlers
 ipcMain.handle("settings:get", (event, key, defaultValue) => {
-  return store.get(key, defaultValue);
+  console.log(`IPC settings:get called with key: ${key}`);
+  return config[key] !== undefined ? config[key] : defaultValue;
 });
 
 ipcMain.handle("settings:set", (event, key, value) => {
-  store.set(key, value);
+  console.log(`IPC settings:set called with key: ${key}`);
+  config[key] = value;
+  saveConfig();
 });
 
 ipcMain.handle("platform:get", () => {
+  console.log("IPC platform:get called");
   return {
     platform: process.platform,
     pathSep: path.sep,
@@ -91,6 +190,7 @@ ipcMain.handle("platform:get", () => {
 });
 
 ipcMain.handle("dialog:openFile", async () => {
+  console.log("IPC dialog:openFile called");
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     properties: ["openFile"],
     filters: [
@@ -112,12 +212,13 @@ ipcMain.handle("dialog:openFile", async () => {
 });
 
 ipcMain.handle("file:saveFile", async (event, filePathToSave, content) => {
+  console.log(`IPC file:saveFile called with filePath: ${filePathToSave}`);
   let savePath = filePathToSave;
 
   if (!savePath) {
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       title: "Save C File As",
-      defaultPath: store.get("lastOpenFolder") || app.getPath("documents"),
+      defaultPath: config.lastOpenFolder || app.getPath("documents"),
       filters: [
         { name: "C Files", extensions: ["c"] },
         { name: "All Files", extensions: ["*"] },
@@ -139,6 +240,7 @@ ipcMain.handle("file:saveFile", async (event, filePathToSave, content) => {
 });
 
 ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
+  console.log(`IPC code:runOrBuild called with filePath: ${filePathToRun}`);
   if (!filePathToRun) {
     return {
       success: false,
@@ -166,29 +268,45 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
       "stb_image_resize2.h",
     ].map((file) => path.join(libDir, file));
 
-    if (
-      !(await fileExists(arcadeSource)) ||
-      !(await fileExists(arcadeHeader))
-    ) {
+    console.log(`Checking arcade library files in: ${libDir}`);
+    if (!(await fileExists(arcadeSource))) {
+      console.error(`Arcade source not found at: ${arcadeSource}`);
       return {
         success: false,
-        output: `Error: Arcade Library files (arcade.c, arcade.h) not found in ${libDir}. Please ensure they are present.`,
+        output: `Error: arcade.c not found at ${arcadeSource}. Ensure the lib directory contains arcade.c.`,
+      };
+    }
+    if (!(await fileExists(arcadeHeader))) {
+      console.error(`Arcade header not found at: ${arcadeHeader}`);
+      return {
+        success: false,
+        output: `Error: arcade.h not found at ${arcadeHeader}. Ensure the lib directory contains arcade.h.`,
       };
     }
     for (const header of stbHeaders) {
       if (!(await fileExists(header))) {
+        console.error(`STB header not found at: ${header}`);
         return {
           success: false,
           output: `Error: STB header (${path.basename(
             header
-          )}) not found in ${libDir}. Please ensure all STB headers are present.`,
+          )}) not found at ${header}. Ensure all STB headers are present in lib.`,
         };
       }
     }
 
+    // Escape paths for Makefile to handle spaces
+    const escapedLibDir = libDir.replace(/\\/g, "/").replace(/"/g, '\\"');
+    const escapedArcadeSource = arcadeSource
+      .replace(/\\/g, "/")
+      .replace(/"/g, '\\"');
+    const escapedFilePathToRun = filePathToRun
+      .replace(/\\/g, "/")
+      .replace(/"/g, '\\"');
+
     const makefileContent = `
 CC = gcc
-CFLAGS = -Wall -I"${libDir}"
+CFLAGS = -Wall -I"${escapedLibDir}"
 TARGET = ${gameName}
 
 ifeq ($(OS),Windows_NT)
@@ -198,18 +316,18 @@ else
 endif
 
 all:
-	$(CC) $(CFLAGS) -o $(TARGET) ${filePathToRun} ${arcadeSource} $(LIBS)
+	$(CC) $(CFLAGS) -o "$(TARGET)" "${escapedFilePathToRun}" "${escapedArcadeSource}" $(LIBS)
 
 clean:
-	rm -f $(TARGET) *.o
+	rm -f "$(TARGET)" *.o
 `;
     console.log(`Writing Makefile to: ${makefilePath}`);
+    console.log("Makefile content:\n", makefileContent);
     await fs.writeFile(makefilePath, makefileContent, "utf-8");
 
-    const makeCommand = store.get(
-      "buildToolPath",
-      process.platform === "win32" ? "mingw32-make" : "make"
-    );
+    const makeCommand =
+      config.buildToolPath ||
+      (process.platform === "win32" ? "mingw32-make" : "make");
     const env = { ...process.env, TARGET: gameName };
     console.log(
       `Running Makefile: ${makeCommand} in ${dir} with TARGET=${gameName}`
@@ -235,6 +353,7 @@ clean:
     }
 
     if (!buildSuccess) {
+      console.error("Build failed, output:\n", buildOutput);
       return { success: false, output: buildOutput };
     }
 
@@ -290,19 +409,22 @@ clean:
 });
 
 ipcMain.handle("dialog:openFolder", async () => {
+  console.log("IPC dialog:openFolder called");
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     properties: ["openDirectory"],
-    defaultPath: store.get("lastOpenFolder"),
+    defaultPath: config.lastOpenFolder,
   });
   if (canceled || filePaths.length === 0) {
     return { canceled: true };
   }
   const folderPath = filePaths[0];
-  store.set("lastOpenFolder", folderPath);
+  config.lastOpenFolder = folderPath;
+  saveConfig();
   return { canceled: false, folderPath };
 });
 
 ipcMain.handle("fs:readDir", async (event, folderPath) => {
+  console.log(`IPC fs:readDir called with folderPath: ${folderPath}`);
   try {
     const entries = await fs.readdir(folderPath, { withFileTypes: true });
     const files = entries
@@ -326,8 +448,8 @@ ipcMain.handle("fs:readDir", async (event, folderPath) => {
 });
 
 ipcMain.handle("fs:readFile", async (event, filePath) => {
+  console.log(`IPC fs:readFile called with filePath: ${filePath}`);
   try {
-    console.log(`Reading file via IPC: ${filePath}`);
     const content = await fs.readFile(filePath, "utf-8");
     return { success: true, content };
   } catch (error) {
@@ -337,6 +459,7 @@ ipcMain.handle("fs:readFile", async (event, filePath) => {
 });
 
 ipcMain.handle("fs:writeFile", async (event, filePath, content) => {
+  console.log(`IPC fs:writeFile called with filePath: ${filePath}`);
   try {
     await fs.writeFile(filePath, content, "utf-8");
     return { success: true };
@@ -347,6 +470,7 @@ ipcMain.handle("fs:writeFile", async (event, filePath, content) => {
 });
 
 ipcMain.handle("fs:createFolder", async (event, folderPath) => {
+  console.log(`IPC fs:createFolder called with folderPath: ${folderPath}`);
   try {
     await fs.mkdir(folderPath, { recursive: true });
     return { success: true };
@@ -357,12 +481,22 @@ ipcMain.handle("fs:createFolder", async (event, folderPath) => {
 });
 
 ipcMain.handle("project:newArcade", async (event, folderPath) => {
+  console.log(`IPC project:newArcade called with folderPath: ${folderPath}`);
   try {
     await fs.mkdir(folderPath, { recursive: true });
 
+    const escapedLibDir = path
+      .join(__dirname, "lib")
+      .replace(/\\/g, "/")
+      .replace(/"/g, '\\"');
+    const escapedArcadeSource = path
+      .join(__dirname, "lib", "arcade.c")
+      .replace(/\\/g, "/")
+      .replace(/"/g, '\\"');
+
     const makefileContent = `
 CC = gcc
-CFLAGS = -Wall -I"${path.join(__dirname, "lib").replace(/\\/g, "/")}"
+CFLAGS = -Wall -I"${escapedLibDir}"
 TARGET = game
 
 ifeq ($(OS),Windows_NT)
@@ -372,12 +506,10 @@ else
 endif
 
 all:
-	$(CC) $(CFLAGS) -o $(TARGET) game.c ${path
-    .join(__dirname, "lib", "arcade.c")
-    .replace(/\\/g, "/")} $(LIBS)
+	$(CC) $(CFLAGS) -o "$(TARGET)" game.c "${escapedArcadeSource}" $(LIBS)
 
 clean:
-	rm -f $(TARGET) *.o
+	rm -f "$(TARGET)" *.o
 `;
     await fs.writeFile(
       path.join(folderPath, "Makefile"),

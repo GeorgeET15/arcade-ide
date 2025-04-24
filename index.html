@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; media-src 'self' data:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: file:; media-src 'self' data: file:;"
     />
     <title>Arcade IDE</title>
     <link rel="stylesheet" id="theme-stylesheet" href="style.css" />
@@ -21,6 +21,29 @@
       href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <script>
+      console.log("Setting Monaco require paths");
+      var require = { paths: { vs: "./node_modules/monaco-editor/min/vs" } };
+      window.MonacoEnvironment = {
+        getWorkerUrl: function (moduleId, label) {
+          console.log(`Monaco getWorkerUrl called for label: ${label}`);
+          const workerPath =
+            "./node_modules/monaco-editor/min/vs/base/worker/workerMain.js";
+          console.log(`Returning worker URL: ${workerPath}`);
+          return workerPath;
+        },
+      };
+    </script>
+    <script
+      src="./node_modules/monaco-editor/min/vs/loader.js"
+      onload="console.log('Monaco loader.js loaded')"
+      onerror="console.error('Failed to load loader.js')"
+    ></script>
+    <script
+      src="./node_modules/monaco-editor/min/vs/editor/editor.main.js"
+      onload="console.log('Monaco editor.main.js loaded')"
+      onerror="console.error('Failed to load editor.main.js')"
+    ></script>
   </head>
   <body class="arcade-bg">
     <div class="app-container">
@@ -31,7 +54,7 @@
             <button id="btn-open-folder" title="Open Folder">
               <i class="fas fa-folder-open"></i>
             </button>
-            <button id="btn-new-file-in-folder" title="New File initted">
+            <button id="btn-new-file-in-folder" title="New File in Folder">
               <i class="fas fa-file-medical"></i>
             </button>
             <button id="btn-new-folder" title="New Folder">
@@ -160,28 +183,6 @@
     <div id="music-popup" class="music-popup">
       <p id="music-popup-message"></p>
     </div>
-    <script>
-      console.log("Setting Monaco require paths");
-      var require = { paths: { vs: "./node_modules/monaco-editor/min/vs" } };
-      window.MonacoEnvironment = {
-        getWorkerUrl: function (moduleId, label) {
-          if (label === "editorWorkerService") {
-            return "./node_modules/monaco-editor/min/vs/base/worker/workerMain.js";
-          }
-          return "./node_modules/monaco-editor/min/vs/base/worker/workerMain.js";
-        },
-      };
-    </script>
-    <script
-      src="./node_modules/monaco-editor/min/vs/loader.js"
-      onload="console.log('Monaco loader.js loaded')"
-      onerror="console.error('Failed to load loader.js')"
-    ></script>
-    <script
-      src="./node_modules/monaco-editor/min/vs/editor/editor.main.js"
-      onload="console.log('Monaco editor.main.js loaded')"
-      onerror="console.error('Failed to load editor.main.js')"
-    ></script>
     <script
       src="./renderer.js"
       onload="console.log('renderer.js loaded')"

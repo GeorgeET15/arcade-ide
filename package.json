@@ -1,64 +1,90 @@
 {
   "name": "arcade-ide",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "Retro-themed 2D game development IDE using arcade.h",
   "main": "main.js",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "electron .",
     "build": "electron-builder",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-builder",
+    "make:win": "electron-builder --win",
+    "make:linux": "electron-builder --linux"
   },
-  "keywords": [],
-  "author": "GeorgeET15",
+  "author": {
+    "name": "GeorgeET15",
+    "email": "georgeet15@example.com"
+  },
   "license": "ISC",
   "devDependencies": {
-    "@electron-forge/cli": "^7.8.0",
-    "@electron-forge/maker-deb": "^7.8.0",
-    "@electron-forge/maker-rpm": "^7.8.0",
-    "@electron-forge/maker-squirrel": "^7.8.0",
-    "@electron-forge/maker-zip": "^7.8.0",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
-    "@electron-forge/plugin-fuses": "^7.8.0",
-    "@electron/fuses": "^1.8.0",
-    "electron": "^35.2.1"
+    "electron": "^33.0.2",
+    "electron-builder": "^25.1.8"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
-    "electron-squirrel-startup": "^1.0.1",
-    "electron-store": "^10.0.1",
     "monaco-editor": "^0.52.2"
   },
   "build": {
     "appId": "com.georgeet15.arcadeide",
     "productName": "Arcade IDE",
+    "asar": false,
     "files": [
       "main.js",
       "preload.js",
       "index.html",
       "style.css",
       "renderer.js",
+      "icon.png",
+      "lib/arcade.c",
+      "lib/arcade.h",
+      "lib/stb_image.h",
+      "lib/stb_image_write.h",
+      "lib/stb_image_resize2.h",
       "music/**/*",
       "themes/**/*",
-      "lib/**/*",
-      "node_modules/**/*",
-      "icon.png"
+      "node_modules/monaco-editor/min/**/*",
+      "node_modules/@fortawesome/fontawesome-free/**/*"
     ],
     "directories": {
       "output": "dist"
     },
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "icon.png"
-    },
     "linux": {
       "target": [
-        "AppImage"
+        "deb"
       ],
-      "icon": "icon.png"
+      "executableName": "arcade-ide",
+      "icon": "icon.png",
+      "category": "Development",
+      "desktop": {
+        "Name": "Arcade IDE",
+        "Comment": "Retro-themed 2D game development IDE",
+        "Icon": "arcade-ide",
+        "Type": "Application",
+        "Categories": "Development;IDE;"
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "icon.ico",
+      "executableName": "ArcadeIDE"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Arcade IDE"
     }
   }
 }

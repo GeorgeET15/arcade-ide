@@ -1,0 +1,6 @@
+sudo dpkg -r arcade-ide
+cd ..
+rm -rf dist/
+npm run make
+cd dist/
+sudo dpkg -i arcade-ide_1.0.0_amd64.deb
