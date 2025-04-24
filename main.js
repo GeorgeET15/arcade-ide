@@ -189,6 +189,18 @@ ipcMain.handle("platform:get", () => {
   };
 });
 
+ipcMain.handle("path:join", async (event, ...args) => {
+  console.log(`IPC path:join called with args: ${args}`);
+  try {
+    const joinedPath = path.join(...args);
+    console.log(`Joined path: ${joinedPath}`);
+    return joinedPath;
+  } catch (error) {
+    console.error(`Error joining paths: ${error.message}`);
+    throw error;
+  }
+});
+
 ipcMain.handle("dialog:openFile", async () => {
   console.log("IPC dialog:openFile called");
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
@@ -204,7 +216,7 @@ ipcMain.handle("dialog:openFile", async () => {
   const filePath = filePaths[0];
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return { canceled: false, filePath, content };
+    return { canceled: false, filePath, content, success: true };
   } catch (error) {
     console.error("Failed to read file via dialog:", error);
     return { canceled: true, error: error.message };
@@ -232,10 +244,139 @@ ipcMain.handle("file:saveFile", async (event, filePathToSave, content) => {
 
   try {
     await fs.writeFile(savePath, content, "utf-8");
-    return { canceled: false, filePath: savePath };
+    return { canceled: false, filePath: savePath, success: true };
   } catch (error) {
     console.error("Failed to save file:", error);
     return { canceled: true, error: error.message };
+  }
+});
+
+ipcMain.handle("dialog:openFolder", async () => {
+  console.log("IPC dialog:openFolder called");
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory"],
+    defaultPath: config.lastOpenFolder,
+  });
+  if (canceled || filePaths.length === 0) {
+    return { canceled: true };
+  }
+  const folderPath = filePaths[0];
+  config.lastOpenFolder = folderPath;
+  saveConfig();
+  return { canceled: false, folderPath, success: true };
+});
+
+ipcMain.handle("file:readDir", async (event, folderPath) => {
+  console.log(`IPC file:readDir called with folderPath: ${folderPath}`);
+  try {
+    const entries = await fs.readdir(folderPath, { withFileTypes: true });
+    const files = entries
+      .map((entry) => ({
+        name: entry.name,
+        isDir: entry.isDirectory(),
+        path: path.join(folderPath, entry.name),
+      }))
+      .filter((f) => f.isDir || /\.(c|h|makefile|png|wav)$/i.test(f.name))
+      .filter((f) => !f.name.startsWith("."))
+      .sort((a, b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+
+    return { success: true, files };
+  } catch (error) {
+    console.error(`Error reading directory ${folderPath}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("file:readFile", async (event, filePath) => {
+  console.log(`IPC file:readFile called with filePath: ${filePath}`);
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+    return { success: true, content };
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("file:writeFile", async (event, filePath, content) => {
+  console.log(`IPC file:writeFile called with filePath: ${filePath}`);
+  try {
+    await fs.writeFile(filePath, content, "utf-8");
+    return { success: true };
+  } catch (error) {
+    console.error(`Error writing file ${filePath}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("file:createFolder", async (event, folderPath) => {
+  console.log(`IPC file:createFolder called with folderPath: ${folderPath}`);
+  try {
+    await fs.mkdir(folderPath, { recursive: true });
+    return { success: true };
+  } catch (error) {
+    console.error(`Error creating folder ${folderPath}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("fs:readDir", async (event, folderPath) => {
+  console.log(`IPC fs:readDir called with folderPath: ${folderPath}`);
+  try {
+    const entries = await fs.readdir(folderPath, { withFileTypes: true });
+    const files = entries
+      .map((entry) => ({
+        name: entry.name,
+        isDir: entry.isDirectory(),
+        path: path.join(folderPath, entry.name),
+      }))
+      .filter((f) => f.isDir || /\.(c|h|makefile|png|wav)$/i.test(f.name))
+      .filter((f) => !f.name.startsWith("."))
+      .sort((a, b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+
+    return { success: true, files };
+  } catch (error) {
+    console.error(`Error reading directory ${folderPath}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("fs:readFile", async (event, filePath) => {
+  console.log(`IPC fs:readFile called with filePath: ${filePath}`);
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+    return { success: true, content };
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("fs:writeFile", async (event, filePath, content) => {
+  console.log(`IPC fs:writeFile called with filePath: ${filePath}`);
+  try {
+    await fs.writeFile(filePath, content, "utf-8");
+    return { success: true };
+  } catch (error) {
+    console.error(`Error writing file ${filePath}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("fs:createFolder", async (event, folderPath) => {
+  console.log(`IPC fs:createFolder called with folderPath: ${folderPath}`);
+  try {
+    await fs.mkdir(folderPath, { recursive: true });
+    return { success: true };
+  } catch (error) {
+    console.error(`Error creating folder ${folderPath}:`, error);
+    return { success: false, error: error.message };
   }
 });
 
@@ -408,78 +549,6 @@ clean:
   }
 });
 
-ipcMain.handle("dialog:openFolder", async () => {
-  console.log("IPC dialog:openFolder called");
-  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openDirectory"],
-    defaultPath: config.lastOpenFolder,
-  });
-  if (canceled || filePaths.length === 0) {
-    return { canceled: true };
-  }
-  const folderPath = filePaths[0];
-  config.lastOpenFolder = folderPath;
-  saveConfig();
-  return { canceled: false, folderPath };
-});
-
-ipcMain.handle("fs:readDir", async (event, folderPath) => {
-  console.log(`IPC fs:readDir called with folderPath: ${folderPath}`);
-  try {
-    const entries = await fs.readdir(folderPath, { withFileTypes: true });
-    const files = entries
-      .map((entry) => ({
-        name: entry.name,
-        isDir: entry.isDirectory(),
-        path: path.join(folderPath, entry.name),
-      }))
-      .filter((f) => f.isDir || /\.(c|h|makefile|png|wav)$/i.test(f.name))
-      .filter((f) => !f.name.startsWith("."))
-      .sort((a, b) => {
-        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-      });
-
-    return { success: true, files };
-  } catch (error) {
-    console.error(`Error reading directory ${folderPath}:`, error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle("fs:readFile", async (event, filePath) => {
-  console.log(`IPC fs:readFile called with filePath: ${filePath}`);
-  try {
-    const content = await fs.readFile(filePath, "utf-8");
-    return { success: true, content };
-  } catch (error) {
-    console.error(`Error reading file ${filePath}:`, error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle("fs:writeFile", async (event, filePath, content) => {
-  console.log(`IPC fs:writeFile called with filePath: ${filePath}`);
-  try {
-    await fs.writeFile(filePath, content, "utf-8");
-    return { success: true };
-  } catch (error) {
-    console.error(`Error writing file ${filePath}:`, error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle("fs:createFolder", async (event, folderPath) => {
-  console.log(`IPC fs:createFolder called with folderPath: ${folderPath}`);
-  try {
-    await fs.mkdir(folderPath, { recursive: true });
-    return { success: true };
-  } catch (error) {
-    console.error(`Error creating folder ${folderPath}:`, error);
-    return { success: false, error: error.message };
-  }
-});
-
 ipcMain.handle("project:newArcade", async (event, folderPath) => {
   console.log(`IPC project:newArcade called with folderPath: ${folderPath}`);
   try {
@@ -524,4 +593,29 @@ clean:
     console.error("Error creating Arcade project:", error);
     return { success: false, error: error.message };
   }
+});
+
+ipcMain.handle("project:newArcadeProject", async (event, folderPath) => {
+  console.log(
+    `IPC project:newArcadeProject called with folderPath: ${folderPath}`
+  );
+  // Delegate to project:newArcade for compatibility
+  return ipcMain.handle("project:newArcade")(event, folderPath);
+});
+
+ipcMain.handle("icon:getClass", (event, fileName, isDir) => {
+  console.log(`IPC icon:getClass called for: ${fileName}, isDir: ${isDir}`);
+  const ext = isDir ? "folder" : path.extname(fileName).toLowerCase().slice(1);
+  const iconMap = {
+    folder: "fas fa-folder",
+    c: "fas fa-file-code",
+    h: "fas fa-file-code",
+    png: "fas fa-file-image",
+    wav: "fas fa-file-audio",
+    txt: "fas fa-file-alt",
+    makefile: "fas fa-file",
+  };
+  const iconClass = iconMap[ext] || (isDir ? "fas fa-folder" : "fas fa-file");
+  console.log(`Returning icon class: ${iconClass}`);
+  return iconClass;
 });

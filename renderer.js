@@ -37,7 +37,6 @@ console.log("Renderer script loaded");
 
   console.log("Waiting for Monaco loader...");
   try {
-    // Monaco is loaded via index.html
     if (
       typeof require === "undefined" ||
       typeof require.config === "undefined"
@@ -152,7 +151,7 @@ console.log("Renderer script loaded");
   }
 })();
 
-// Rest of the functions remain unchanged
+// Rest of the functions
 function getBaseName(filePath) {
   if (!filePath) return null;
   return filePath.substring(filePath.lastIndexOf(pathSep) + 1);
@@ -390,7 +389,12 @@ async function handleOpenFile() {
   }
 }
 
-function openOrFocusTab(filePath, content) {
+function openOrFocusTab(
+  filePath,
+  content,
+  isPreview = false,
+  previewType = null
+) {
   const normalizedPath = filePath.replace(/\\/g, pathSep);
   for (const [id, tabInfo] of openTabs.entries()) {
     if (
@@ -407,7 +411,7 @@ function openOrFocusTab(filePath, content) {
   } else if (fileNameLower?.endsWith(".wav")) {
     return createNewTab(filePath, "", true, "audio");
   }
-  return createNewTab(filePath, content);
+  return createNewTab(filePath, content, isPreview, previewType);
 }
 
 async function handleSaveFile(tabIdToSave = activeTabId) {
@@ -585,9 +589,11 @@ async function handleNewFileInFolder() {
     outputArea.textContent = "File creation canceled.";
     return;
   }
-  const filePath = path.join(currentFolderPath, fileName);
-  outputArea.textContent = `Creating file ${fileName}...`;
   try {
+    const filePath = await window.electronAPI.pathJoin(
+      currentFolderPath,
+      fileName
+    );
     const result = await window.electronAPI.writeFile(filePath, "");
     if (result.success) {
       await loadAndDisplayFolder(currentFolderPath);
@@ -615,9 +621,11 @@ async function handleNewFolder() {
     outputArea.textContent = "Folder creation canceled.";
     return;
   }
-  const folderPath = path.join(currentFolderPath, folderName);
-  outputArea.textContent = `Creating folder ${folderName}...`;
   try {
+    const folderPath = await window.electronAPI.pathJoin(
+      currentFolderPath,
+      folderName
+    );
     const result = await window.electronAPI.createFolder(folderPath);
     if (result.success) {
       await loadAndDisplayFolder(currentFolderPath);
@@ -758,43 +766,52 @@ async function loadAndDisplayFolder(
         parentElement.innerHTML =
           '<li class="placeholder">No relevant files found.</li>';
       } else {
-        result.files.forEach((file) => {
+        result.files.sort((a, b) => {
+          if (a.isDir && !b.isDir) return -1;
+          if (!a.isDir && b.isDir) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+        for (const file of result.files) {
           const li = document.createElement("li");
           li.dataset.filePath = file.path;
-          li.classList.add(file.isDir ? "is-dir" : "is-file");
-          li.style.paddingLeft = `${depth * 12 + 8}px`;
-
-          const toggleSpan = document.createElement("span");
-          toggleSpan.className = "toggle-icon";
-          toggleSpan.innerHTML = file.isDir
-            ? '<i class="fas fa-chevron-right"></i>'
-            : " ";
-          li.appendChild(toggleSpan);
-
-          const iconSpan = document.createElement("span");
-          const iconClass = window.electronAPI.getIconClass(
-            file.name,
-            file.isDir
-          );
-          iconSpan.className = `file-icon ${iconClass}`;
-          console.log(`Applying icon class for ${file.name}: ${iconClass}`);
-          li.appendChild(iconSpan);
-
-          const nameSpan = document.createElement("span");
-          nameSpan.textContent = file.name;
-          li.appendChild(nameSpan);
+          li.classList.add(file.isDir ? "folder" : "is-file");
+          li.style.paddingLeft = `${depth * 8 + 10}px`;
 
           if (file.isDir) {
+            const folderHeader = document.createElement("div");
+            folderHeader.className = "folder-header";
+
+            const toggleSpan = document.createElement("span");
+            toggleSpan.className = "toggle-icon";
+            toggleSpan.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            folderHeader.appendChild(toggleSpan);
+
+            const iconSpan = document.createElement("span");
+            const iconClass = window.electronAPI.getIconClass(file.name, true);
+            iconSpan.className = `file-icon ${iconClass}`;
+            console.log(`Applying icon class for ${file.name}: ${iconClass}`);
+            folderHeader.appendChild(iconSpan);
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "file-name";
+            nameSpan.textContent = file.name;
+            folderHeader.appendChild(nameSpan);
+
+            li.appendChild(folderHeader);
+
             const ul = document.createElement("ul");
             ul.style.display = "none";
             li.appendChild(ul);
-            li.onclick = async (e) => {
+
+            folderHeader.onclick = async (e) => {
               e.stopPropagation();
               const wasExpanded = ul.style.display !== "none";
               document
                 .querySelectorAll("#file-tree li")
                 .forEach((el) => el.classList.remove("selected"));
               li.classList.add("selected");
+
               if (!wasExpanded) {
                 toggleSpan.innerHTML =
                   '<i class="fas fa-chevron-down expanded"></i>';
@@ -808,6 +825,22 @@ async function loadAndDisplayFolder(
               }
             };
           } else {
+            const toggleSpan = document.createElement("span");
+            toggleSpan.className = "toggle-icon";
+            toggleSpan.innerHTML = " ";
+            li.appendChild(toggleSpan);
+
+            const iconSpan = document.createElement("span");
+            const iconClass = window.electronAPI.getIconClass(file.name, false);
+            iconSpan.className = `file-icon ${iconClass}`;
+            console.log(`Applying icon class for ${file.name}: ${iconClass}`);
+            li.appendChild(iconSpan);
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "file-name";
+            nameSpan.textContent = file.name;
+            li.appendChild(nameSpan);
+
             li.onclick = async (e) => {
               e.stopPropagation();
               const filePathToOpen = li.dataset.filePath;
@@ -860,7 +893,7 @@ async function loadAndDisplayFolder(
             };
           }
           parentElement.appendChild(li);
-        });
+        }
       }
     } else {
       outputArea.textContent = `Error: ${result.error}`;
@@ -929,6 +962,7 @@ function attachUIEventListeners() {
       handlePlay();
     }
   });
-}
 
-console.log("Renderer script execution finished.");
+  newFileInFolderButton.disabled = !currentFolderPath;
+  newFolderButton.disabled = !currentFolderPath;
+}
