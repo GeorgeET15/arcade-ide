@@ -1,0 +1,563 @@
+/* Neon-Purple Theme for Arcade IDE (Dark Background with Neon Purple Accents) */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body.arcade-bg {
+  font-family: "Fira Code", monospace;
+  color: #f0e6ff; /* soft white */
+  background: linear-gradient(
+    180deg,
+    #1c1726 0%,
+    #0d0b14 50%
+  ); /* deep purple to black */
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.arcade-sidebar {
+  background: #2b2538; /* dark purple-gray */
+  border-right: 2px solid #c71585; /* neon magenta */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 220px;
+  flex-shrink: 0;
+  transition: width 0.2s ease;
+}
+
+.arcade-sidebar.collapsed {
+  width: 40px;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  background: #1c1726; /* deep purple */
+  border-bottom: 2px solid #c71585; /* neon magenta */
+  height: 40px;
+}
+
+.sidebar-header span {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  color: #f0e6ff; /* soft white */
+}
+
+.sidebar-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.sidebar-buttons button {
+  background: none;
+  border: none;
+  color: #b19cd9; /* light purple */
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.sidebar-buttons button:hover {
+  color: #f0e6ff; /* soft white */
+}
+
+.arcade-sidebar.collapsed .sidebar-header span,
+.arcade-sidebar.collapsed #file-tree {
+  display: none;
+}
+
+.arcade-sidebar.collapsed .sidebar-buttons {
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Hide all buttons except btn-toggle-sidebar in collapsed state */
+.arcade-sidebar.collapsed .sidebar-buttons button:not(#btn-toggle-sidebar) {
+  display: none;
+}
+
+#file-tree {
+  list-style: none;
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 5px 0;
+  margin: 0;
+  font-size: 12px;
+}
+
+#file-tree li {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  color: #f0e6ff; /* soft white */
+}
+
+#file-tree li:hover {
+  background: #c7158540; /* semi-transparent neon magenta */
+}
+
+#file-tree li.selected {
+  background: #c71585; /* neon magenta */
+}
+
+#file-tree li.placeholder {
+  color: #b19cd9; /* light purple */
+  font-style: italic;
+  padding-left: 20px;
+  cursor: default;
+}
+
+#file-tree li.placeholder:hover {
+  background: none;
+}
+
+#file-tree li.placeholder.error {
+  font-style: normal;
+  color: #ff69b4; /* hot pink */
+}
+
+.file-icon {
+  margin: 0 4px 0 2px;
+  font-size: 13px;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  line-height: 16px;
+  color: #b19cd9; /* light purple */
+}
+
+#file-tree .toggle-icon {
+  width: 12px;
+  margin: 0 2px;
+  display: inline-block;
+  font-size: 10px;
+  color: #b19cd9; /* light purple */
+  transition: transform 0.2s ease;
+}
+
+#file-tree .toggle-icon.expanded {
+  transform: rotate(90deg);
+}
+
+#file-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.arcade-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: #2b2538; /* dark purple-gray */
+  border-bottom: 2px solid #c71585; /* neon magenta */
+  height: 40px;
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 4px; /* Small gap between settings and headphones */
+  margin-left: auto; /* Push the group to the right */
+}
+
+.arcade-button {
+  background: #2b2538; /* dark purple-gray */
+  border: 2px solid #b19cd9; /* light purple */
+  color: #f0e6ff; /* soft white */
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  padding: 4px 12px;
+  margin-right: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.arcade-button:hover {
+  background: #3a2f4a; /* lighter purple-gray */
+  border-color: #f0e6ff; /* soft white */
+  color: #f0e6ff; /* soft white */
+}
+
+.arcade-button i {
+  margin-right: 4px;
+}
+
+.arcade-button#btn-settings,
+.arcade-button#btn-headphones {
+  border: none;
+  background: none;
+  padding: 4px 8px;
+}
+
+.arcade-button#btn-settings:hover,
+.arcade-button#btn-headphones:hover {
+  background: #c71585; /* neon magenta */
+  border: none;
+}
+
+.arcade-button#btn-settings i,
+.arcade-button#btn-headphones i {
+  margin-right: 0;
+  font-size: 16px;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+.arcade-tab-bar {
+  display: flex;
+  height: 35px;
+  background: #1c1726; /* deep purple */
+  border-bottom: 2px solid #c71585; /* neon magenta */
+  overflow-x: auto;
+}
+
+.arcade-tab-bar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  background: #2b2538; /* dark purple-gray */
+  color: #b19cd9; /* light purple */
+  padding: 0 10px;
+  height: 100%;
+  flex-shrink: 0;
+  max-width: 200px;
+  border-right: 1px solid #c71585; /* neon magenta */
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  background: #1c1726; /* deep purple */
+  color: #f0e6ff; /* soft white */
+  border-top: 2px solid #ff00ff; /* neon purple */
+}
+
+.tab:hover {
+  background: #c71585; /* neon magenta */
+}
+
+.tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 5px;
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+}
+
+.tab-modified-indicator {
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 1;
+  margin-left: 2px;
+  margin-right: 4px;
+  color: #ff69b4; /* hot pink */
+  display: none;
+}
+
+.tab.modified .tab-modified-indicator {
+  display: inline-block;
+}
+
+.tab-close {
+  background: none;
+  border: none;
+  color: #b19cd9; /* light purple */
+  font-size: 14px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tab-close:hover {
+  color: #ff69b4; /* hot pink */
+}
+
+.tab.modified .tab-close {
+  color: #ff69b4; /* hot pink */
+  font-size: 16px;
+}
+
+.editor-output-split {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+  background: #1c1726; /* deep purple */
+}
+
+#editor-container {
+  flex-grow: 1;
+  overflow: hidden;
+  min-height: 100px;
+  position: relative;
+  background: #1c1726; /* deep purple */
+}
+
+#editor-container .monaco-editor,
+#editor-container .monaco-editor .monaco-editor-background,
+#editor-container .monaco-editor .margin {
+  background: #1c1726 !important; /* Force Monaco Editor background */
+}
+
+/* Transparent Monaco Editor when intro or preview is shown */
+#editor-container:has(.intro-message[style*="display: flex"]) .monaco-editor,
+#editor-container:has(.intro-message[style*="display: flex"])
+  .monaco-editor
+  .monaco-editor-background,
+#editor-container:has(.intro-message[style*="display: flex"])
+  .monaco-editor
+  .margin,
+#editor-container:has(.preview-container[style*="display: block"])
+  .monaco-editor,
+#editor-container:has(.preview-container[style*="display: block"])
+  .monaco-editor
+  .monaco-editor-background,
+#editor-container:has(.preview-container[style*="display: block"])
+  .monaco-editor
+  .margin {
+  background: transparent !important;
+}
+
+.intro-message {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  background: #1c1726; /* deep purple */
+  z-index: 1000;
+}
+
+.intro-content {
+  text-align: center;
+  background: #2b2538; /* dark purple-gray */
+  border: 2px solid #c71585; /* neon magenta */
+  padding: 20px;
+  border-radius: 4px;
+}
+
+.intro-content h1 {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 24px;
+  color: #ff00ff; /* neon purple */
+  margin-bottom: 10px;
+}
+
+.intro-content p {
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+  color: #f0e6ff; /* soft white */
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+/* Preview container for images and audio */
+.preview-container {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #1c1726; /* deep purple */
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: 2px solid #c71585; /* neon magenta */
+  border-radius: 4px;
+}
+
+.preview-audio {
+  width: 100%;
+  max-width: 400px;
+  background: #2b2538; /* dark purple-gray */
+  border: 2px solid #c71585; /* neon magenta */
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.preview-audio audio {
+  width: 100%;
+}
+
+.preview-audio p {
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+  color: #f0e6ff; /* soft white */
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.arcade-output {
+  display: flex;
+  flex-direction: column;
+  background: #2b2538; /* dark purple-gray */
+  border-top: 2px solid #c71585; /* neon magenta */
+  height: 200px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
+.arcade-output.collapsed {
+  height: 28px;
+}
+
+.output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  background: #1c1726; /* deep purple */
+  border-bottom: 2px solid #c71585; /* neon magenta */
+  height: 28px;
+}
+
+.output-header h3 {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  color: #f0e6ff; /* soft white */
+  margin: 0;
+}
+
+.output-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.output-buttons button {
+  background: none;
+  border: none;
+  color: #b19cd9; /* light purple */
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.output-buttons button:hover {
+  color: #f0e6ff; /* soft white */
+}
+
+#output-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px;
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+  color: #f0e6ff; /* soft white */
+  background: #1c1726; /* deep purple */
+}
+
+.settings-dialog {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  padding: 20px;
+}
+
+.settings-content {
+  background: #2b2538; /* dark purple-gray */
+  border: 2px solid #c71585; /* neon magenta */
+  width: 300px;
+  padding: 20px;
+  border-radius: 4px;
+}
+
+.settings-content h3 {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+  color: #f0e6ff; /* soft white */
+  margin-bottom: 10px;
+}
+
+.settings-content label {
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+  color: #b19cd9; /* light purple */
+  display: block;
+  margin-bottom: 5px;
+}
+
+.settings-content select {
+  width: 100%;
+  padding: 5px;
+  background: #1c1726; /* deep purple */
+  border: 1px solid #c71585; /* neon magenta */
+  color: #f0e6ff; /* soft white */
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.settings-content button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* Music pop-up styles */
+.music-popup {
+  display: none;
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  background: #2b2538; /* dark purple-gray */
+  border: 2px solid #ff00ff; /* neon purple */
+  padding: 10px 20px;
+  border-radius: 4px;
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.music-popup p {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  color: #ff00ff; /* neon purple */
+  margin: 0;
+}

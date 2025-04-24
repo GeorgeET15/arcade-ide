@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; media-src 'self' data:;"
+    />
+    <title>Arcade IDE</title>
+    <link rel="stylesheet" id="theme-stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      data-name="vs/editor/editor.main"
+      href="./node_modules/monaco-editor/min/vs/editor/editor.main.css"
+    />
+    <link
+      rel="stylesheet"
+      href="./node_modules/@fortawesome/fontawesome-free/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="arcade-bg">
+    <div class="app-container">
+      <div class="arcade-sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span>Explorer</span>
+          <div class="sidebar-buttons">
+            <button id="btn-open-folder" title="Open Folder">
+              <i class="fas fa-folder-open"></i>
+            </button>
+            <button id="btn-new-file-in-folder" title="New File initted">
+              <i class="fas fa-file-medical"></i>
+            </button>
+            <button id="btn-new-folder" title="New Folder">
+              <i class="fas fa-folder-plus"></i>
+            </button>
+            <button id="btn-toggle-sidebar" title="Collapse Sidebar">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+          </div>
+        </div>
+        <ul id="file-tree">
+          <li class="placeholder">Open a folder to see files</li>
+        </ul>
+      </div>
+      <div class="main-content">
+        <div class="arcade-toolbar">
+          <button
+            id="btn-open-folder"
+            title="Open Folder"
+            class="arcade-button"
+          >
+            <i class="fas fa-folder-open"></i> Open Folder
+          </button>
+          <button id="btn-new-file" title="New File" class="arcade-button">
+            <i class="fas fa-file-medical"></i> New File
+          </button>
+          <button
+            id="btn-open-file"
+            title="Open File via Dialog"
+            class="arcade-button"
+          >
+            Open File...
+          </button>
+          <button
+            id="btn-save-file"
+            title="Save Active File (Ctrl+S)"
+            class="arcade-button"
+          >
+            <i class="fas fa-save"></i> Save
+          </button>
+          <button
+            id="btn-play"
+            title="Run/Build Active File (Ctrl+B)"
+            class="arcade-button"
+          >
+            <i class="fas fa-play"></i> Run
+          </button>
+          <div class="spacer"></div>
+          <div class="toolbar-right">
+            <button
+              id="btn-headphones"
+              class="arcade-button"
+              title="Toggle Retro Music"
+            >
+              <i class="fas fa-headphones"></i>
+            </button>
+            <button id="btn-settings" title="Settings" class="arcade-button">
+              <i class="fas fa-cog"></i>
+            </button>
+          </div>
+        </div>
+        <div class="arcade-tab-bar" id="tab-bar"></div>
+        <div class="editor-output-split">
+          <div id="editor-container">
+            <div id="intro-message" class="intro-message">
+              <div class="intro-content">
+                <h1>🎮 Arcade IDE</h1>
+                <p>
+                  Welcome to Arcade IDE - A retro-inspired coding
+                  environment!<br />
+                  - Open a file or folder to begin.<br />
+                  - Use Ctrl+S to save, Ctrl+B to run.<br />
+                  - Click the gear icon for settings.<br />
+                  Version: 1.0
+                </p>
+              </div>
+            </div>
+            <div
+              id="preview-container"
+              class="preview-container"
+              style="display: none"
+            >
+              <div class="preview-content">
+                <img id="image-preview" style="display: none" />
+                <div id="audio-preview" style="display: none">
+                  <audio id="audio-player" controls></audio>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="arcade-output" id="output-container">
+            <div class="output-header">
+              <h3>Output</h3>
+              <div class="output-buttons">
+                <button id="btn-clear-output" title="Clear Output">
+                  <i class="fas fa-trash"></i>
+                </button>
+                <button id="btn-toggle-output" title="Collapse Output">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+            </div>
+            <pre id="output-area"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="settings-dialog" class="settings-dialog" style="display: none">
+      <div class="settings-content">
+        <h3>Settings</h3>
+        <label for="theme-selector">Theme:</label>
+        <select id="theme-selector">
+          <option value="style.css">Charcoal-Teal</option>
+          <option value="themes/neon-purple.css">Neon-Purple</option>
+          <option value="themes/retro-red.css">Retro-Red</option>
+          <option value="themes/vs-dark.css">VS-Dark</option>
+          <option value="themes/vs-light.css">VS-Light</option>
+          <option value="themes/github-dark.css">GitHub-Dark</option>
+        </select>
+        <button id="btn-close-settings" class="arcade-button">Close</button>
+      </div>
+    </div>
+    <!-- Audio element for background music -->
+    <audio id="bg-music" preload="auto"></audio>
+    <!-- Pop-up message for music toggle -->
+    <div id="music-popup" class="music-popup">
+      <p id="music-popup-message"></p>
+    </div>
+    <script>
+      console.log("Setting Monaco require paths");
+      var require = { paths: { vs: "./node_modules/monaco-editor/min/vs" } };
+      window.MonacoEnvironment = {
+        getWorkerUrl: function (moduleId, label) {
+          if (label === "editorWorkerService") {
+            return "./node_modules/monaco-editor/min/vs/base/worker/workerMain.js";
+          }
+          return "./node_modules/monaco-editor/min/vs/base/worker/workerMain.js";
+        },
+      };
+    </script>
+    <script
+      src="./node_modules/monaco-editor/min/vs/loader.js"
+      onload="console.log('Monaco loader.js loaded')"
+      onerror="console.error('Failed to load loader.js')"
+    ></script>
+    <script
+      src="./node_modules/monaco-editor/min/vs/editor/editor.main.js"
+      onload="console.log('Monaco editor.main.js loaded')"
+      onerror="console.error('Failed to load editor.main.js')"
+    ></script>
+    <script
+      src="./renderer.js"
+      onload="console.log('renderer.js loaded')"
+      onerror="console.error('Failed to load renderer.js')"
+    ></script>
+    <script>
+      // Audio handling and intro message logic
+      document.addEventListener("DOMContentLoaded", () => {
+        try {
+          console.log("Initializing audio handling and intro message");
+          const musicFiles = [
+            "music/1.wav",
+            "music/2.mp3",
+            "music/3.mp3",
+            "music/4.mp3",
+            "music/5.mp3",
+            "music/6.mp3",
+          ];
+          const audio = document.getElementById("bg-music");
+          const headphonesBtn = document.getElementById("btn-headphones");
+          const musicPopup = document.getElementById("music-popup");
+          const musicPopupMessage = document.getElementById(
+            "music-popup-message"
+          );
+          const outputArea = document.getElementById("output-area");
+          const introMessage = document.getElementById("intro-message");
+          let isPlaying = false;
+          let lastClickTime = 0;
+          const doubleClickDelay = 300; // 300ms for double-click detection
+          let currentSong = null; // Track current song to avoid replaying it
+
+          // Motivational, cool, and awesome retro-themed messages for new songs
+          const popupMessages = [
+            "Unleash your 8-bit genius with arcade.h! Let’s code a legend!",
+            "Pixel power activated! Build epic 2D games with arcade.h!",
+            "Retro beats fuel your arcade.h masterpiece! Code like a champ!",
+            "Arcade.h vibes on max! Craft a 2D game that rocks the arcade!",
+            "Game dev glory awaits! Power up arcade.h with retro flair!",
+            "Synthwave surge! Create pixel-perfect 2D worlds with arcade.h!",
+            "8-bit dreams ignited! Code your arcade.h classic now!",
+            "Retro coding mode: ON! Build a 2D epic with arcade.h!",
+          ];
+
+          // Debug DOM elements
+          console.log("Audio element:", audio ? "Found" : "Not found");
+          console.log(
+            "Headphones button:",
+            headphonesBtn ? "Found" : "Not found"
+          );
+          console.log("Music popup:", musicPopup ? "Found" : "Not found");
+          console.log(
+            "Music popup message:",
+            musicPopupMessage ? "Found" : "Not found"
+          );
+          console.log("Output area:", outputArea ? "Found" : "Not found");
+          console.log("Intro message:", introMessage ? "Found" : "Not found");
+
+          // Check intro message visibility
+          if (introMessage) {
+            const computedStyle = window.getComputedStyle(introMessage);
+            console.log(
+              "Intro message computed display:",
+              computedStyle.display
+            );
+            if (computedStyle.display === "none") {
+              console.warn(
+                "Intro message is hidden; check style.css for .intro-message or #intro-message"
+              );
+              if (outputArea) {
+                outputArea.textContent =
+                  "Warning: Intro message is hidden. Check CSS.";
+              }
+            }
+          } else {
+            console.error("Intro message element not found in DOM");
+            if (outputArea)
+              outputArea.textContent = "Error: Intro message not found";
+          }
+
+          // Headphones button event listener
+          if (!headphonesBtn) {
+            console.error(
+              "Cannot attach event listener: Headphones button not found"
+            );
+            if (outputArea)
+              outputArea.textContent = "Error: Audio setup failed";
+            return;
+          }
+
+          headphonesBtn.addEventListener("click", async (event) => {
+            const currentTime = new Date().getTime();
+            const timeSinceLastClick = currentTime - lastClickTime;
+
+            if (timeSinceLastClick < doubleClickDelay) {
+              // Double click: Play new song with message
+              console.log("Double-click detected, playing new song");
+              await playRandomSong(true); // Force new song
+            } else {
+              // Single click: Toggle play/pause/resume
+              console.log("Single click detected");
+              if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+                console.log("Audio paused");
+              } else {
+                if (!audio.src || !currentSong) {
+                  console.log("No audio source, playing new song");
+                  await playRandomSong(); // New song with message
+                } else {
+                  try {
+                    await audio.play();
+                    isPlaying = true;
+                    console.log("Resumed playback");
+                    // No message for resume
+                  } catch (error) {
+                    console.error("Playback resume failed:", error.message);
+                    if (outputArea) {
+                      outputArea.textContent = `Failed to resume audio: ${error.message}`;
+                    }
+                  }
+                }
+              }
+            }
+            lastClickTime = currentTime;
+          });
+          console.log("Click event listener attached to headphones button");
+
+          async function verifyMusicFiles() {
+            console.log("Verifying music files...");
+            const validFiles = [];
+            for (const file of musicFiles) {
+              try {
+                console.log(`Fetching: ${file}`);
+                const response = await fetch(file);
+                if (response.ok) {
+                  validFiles.push(file);
+                  console.log(`Found music file: ${file}`);
+                } else {
+                  console.warn(`Fetch failed for ${file}: ${response.status}`);
+                }
+              } catch (e) {
+                console.warn(`Error fetching ${file}:`, e.message);
+              }
+            }
+            if (validFiles.length === 0) {
+              console.error("No valid music files found");
+              if (outputArea) {
+                outputArea.textContent =
+                  "Error: No music files found in music/ directory";
+              }
+            } else {
+              console.log(`Found ${validFiles.length} valid music files`);
+            }
+            return validFiles;
+          }
+
+          function showMusicPopup() {
+            if (musicPopup && musicPopupMessage) {
+              console.log("Showing music popup");
+              // Select random motivational message
+              const randomMessage =
+                popupMessages[Math.floor(Math.random() * popupMessages.length)];
+              musicPopupMessage.textContent = randomMessage;
+              musicPopup.style.display = "block";
+              musicPopup.style.opacity = "1";
+              setTimeout(() => {
+                musicPopup.style.opacity = "0";
+                setTimeout(() => {
+                  musicPopup.style.display = "none";
+                  console.log("Music popup hidden");
+                }, 500);
+              }, 1500);
+            } else {
+              console.error("Music popup or message element not found");
+            }
+          }
+
+          async function playRandomSong(forceNew = false) {
+            console.log("Attempting to play random song");
+            const validFiles = await verifyMusicFiles();
+            if (validFiles.length === 0) {
+              console.error("No valid files to play");
+              if (outputArea)
+                outputArea.textContent =
+                  "Error: No valid music files available";
+              return;
+            }
+            let selectedFile;
+            if (forceNew && validFiles.length > 1) {
+              // Ensure a different song is selected
+              const availableFiles = validFiles.filter(
+                (file) => file !== currentSong
+              );
+              selectedFile =
+                availableFiles[
+                  Math.floor(Math.random() * availableFiles.length)
+                ];
+            } else {
+              selectedFile =
+                validFiles[Math.floor(Math.random() * validFiles.length)];
+            }
+            console.log(`Selected file: ${selectedFile}`);
+            if (audio) {
+              audio.src = selectedFile;
+              currentSong = selectedFile;
+              try {
+                await audio.play();
+                console.log("Playback started");
+                isPlaying = true;
+                showMusicPopup(); // Show message for new song
+              } catch (error) {
+                console.error("Playback failed:", error.message);
+                isPlaying = false;
+                if (outputArea) {
+                  outputArea.textContent = `Failed to play audio: ${error.message}`;
+                }
+              }
+            } else {
+              console.error("Audio element not available for playback");
+              if (outputArea)
+                outputArea.textContent = "Error: Audio element not found";
+            }
+          }
+
+          if (audio) {
+            audio.addEventListener("error", () => {
+              console.error(
+                "Audio error:",
+                audio.error?.code,
+                audio.error?.message
+              );
+              if (outputArea) {
+                outputArea.textContent = `Audio error: ${
+                  audio.error?.message || "Unknown error"
+                }`;
+              }
+            });
+          } else {
+            console.error(
+              "Cannot attach error listener: Audio element not found"
+            );
+          }
+
+          // Debug CSP violations
+          document.addEventListener("securitypolicyviolation", (e) => {
+            console.error(
+              "CSP violation:",
+              e.violatedDirective,
+              e.blockedURI,
+              e.originalPolicy
+            );
+            if (outputArea) {
+              outputArea.textContent = `CSP violation: ${e.violatedDirective} blocked ${e.blockedURI}`;
+            }
+          });
+        } catch (error) {
+          console.error("Error in audio handling setup:", error);
+          if (outputArea) outputArea.textContent = `Error: ${error.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>
