@@ -1723,7 +1723,7 @@ async function applyTheme(themePath) {
 }
 
 function toggleIntroMessage() {
-  introMessage.style.display = openTabs.size === 0 ? "block" : "none";
+  introMessage.style.display = openTabs.size === 0 ? "flex" : "none";
 }
 
 function attachUIEventListeners() {

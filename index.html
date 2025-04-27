@@ -48,39 +48,44 @@
   <body class="arcade-bg">
     <div class="app-container">
       <div class="arcade-sidebar" id="sidebar">
-        <div class="sidebar-header">
-          <span>Explorer</span>
-          <div class="sidebar-buttons">
-            <button id="btn-open-folder" title="Open Folder">
-              <i class="fas fa-folder-open"></i>
-            </button>
-            <button id="btn-new-file-in-folder" title="New File in Folder">
-              <i class="fas fa-file-medical"></i>
-            </button>
-            <button id="btn-new-folder" title="New Folder">
-              <i class="fas fa-folder-plus"></i>
-            </button>
-            <button id="btn-toggle-sidebar" title="Collapse Sidebar">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-          </div>
-        </div>
-        <div class="recent-projects">
-          <h4>Recent Projects</h4>
-          <button
-            id="btn-clear-recent-projects"
-            title="Clear Recent Projects"
-            class="arcade-button"
-          >
-            <i class="fas fa-trash"></i> Clear
+        <div class="sidebar-activity">
+          <button id="btn-toggle-sidebar" title="Explorer" class="active">
+            <i class="fas fa-chevron-left"></i>
           </button>
-          <ul id="recent-projects-list">
-            <li class="placeholder">No recent projects</li>
+          <button id="btn-open-folder" title="Open Folder">
+            <i class="fas fa-folder-open"></i>
+          </button>
+          <button id="btn-new-file-in-folder" title="New File">
+            <i class="fas fa-file-medical"></i>
+          </button>
+          <button id="btn-new-folder" title="New Folder">
+            <i class="fas fa-folder-plus"></i>
+          </button>
+        </div>
+        <div class="sidebar-content">
+          <div class="sidebar-header">
+            <span>Explorer</span>
+            <div class="sidebar-buttons"></div>
+          </div>
+          <div class="recent-projects">
+            <div class="recent-projects-header">
+              <h4>Recent Projects</h4>
+              <button
+                id="btn-clear-recent-projects"
+                title="Clear Recent Projects"
+                class="arcade-button"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <ul id="recent-projects-list">
+              <li class="placeholder">No recent projects</li>
+            </ul>
+          </div>
+          <ul id="file-tree">
+            <li class="placeholder">Open a folder to see files</li>
           </ul>
         </div>
-        <ul id="file-tree">
-          <li class="placeholder">Open a folder to see files</li>
-        </ul>
       </div>
       <div class="main-content">
         <div class="arcade-toolbar">

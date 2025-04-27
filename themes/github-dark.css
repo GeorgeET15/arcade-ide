@@ -60,45 +60,86 @@ body.arcade-bg {
 /* Sidebar */
 .arcade-sidebar {
   background: var(--sidebar-background);
-  border-right: var(--border-style) var(--sidebar-border);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
-  width: 220px;
+  width: 250px;
   flex-shrink: 0;
   transition: width var(--transition-ease);
+  overflow: hidden;
 }
 
 .arcade-sidebar.collapsed {
-  width: 40px;
+  width: 48px;
+}
+/* Activity Bar (new section for VS Code-like icons) */
+.sidebar-activity {
+  background: var(--primary-background);
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  border-right: var(--border-style) var(--sidebar-border);
+}
+
+.sidebar-activity button {
+  background: none;
+  border: none;
+  color: var(--secondary-foreground);
+  font-size: 24px; /* Larger icons like VS Code */
+  padding: 12px;
+  cursor: pointer;
+  transition: color var(--transition-ease), background var(--transition-ease);
+}
+
+.sidebar-activity button:hover {
+  color: var(--primary-foreground);
+  background: var(--tertiary-background);
+}
+
+/* Sidebar Content (Explorer, Recent Projects, etc.) */
+.sidebar-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  width: 202px; /* Remaining space */
+  background: var(--sidebar-background);
+}
+
+.arcade-sidebar.collapsed .sidebar-content {
+  display: none;
 }
 
 .sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 10px;
-  background: #21262d; /* slightly lighter dark */
+  padding: 8px 10px;
+  background: var(--sidebar-background);
   border-bottom: var(--border-style) var(--sidebar-border);
+  border-right: var(--border-style) var(--sidebar-border);
   height: 40px;
 }
 
 .sidebar-header span {
   font-family: var(--header-font);
-  font-size: 14px;
+  font-size: 12px;
   color: var(--primary-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .sidebar-buttons {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sidebar-buttons button {
   background: none;
   border: none;
   color: var(--secondary-foreground);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   transition: color var(--transition-ease);
 }
@@ -122,47 +163,6 @@ body.arcade-bg {
   display: none;
 }
 
-/* Recent Projects */
-.recent-projects {
-  padding: 8px 10px;
-  border-bottom: var(--border-style) var(--sidebar-border);
-}
-
-.recent-projects h4 {
-  font-family: var(--header-font);
-  font-size: 12px;
-  color: var(--primary-foreground);
-  margin-bottom: 5px;
-}
-
-#recent-projects-list {
-  list-style: none;
-  font-size: 12px;
-}
-
-#recent-projects-list li {
-  display: flex;
-  align-items: center;
-  padding: 2px 0;
-  cursor: pointer;
-  color: var(--primary-foreground);
-  transition: background 0.1s ease;
-}
-
-#recent-projects-list li:hover {
-  background: var(--tertiary-background);
-}
-
-#recent-projects-list li.placeholder {
-  color: var(--secondary-foreground);
-  font-style: italic;
-  cursor: default;
-}
-
-#recent-projects-list li.placeholder:hover {
-  background: none;
-}
-
 /* File Tree */
 #file-tree {
   list-style: none;
@@ -171,16 +171,17 @@ body.arcade-bg {
   padding: 8px 0;
   margin: 0;
   font-size: 12px;
+  border-right: var(--border-style) var(--sidebar-border);
 }
 
 #file-tree li {
   display: flex;
   align-items: center;
-  padding: 2px 0;
+  padding: 4px 0 4px 10px;
   cursor: pointer;
-  transition: background 0.1s ease;
+  transition: background var(--transition-ease);
   color: var(--primary-foreground);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 #file-tree li.folder {
@@ -190,12 +191,12 @@ body.arcade-bg {
 }
 
 #file-tree li:hover {
-  background: #30363d40; /* semi-transparent subtle hover */
+  background: var(--tertiary-background);
 }
 
 #file-tree li.selected {
-  background: #1f6feb20; /* semi-transparent GitHub blue */
-  border-left: 2px solid var(--highlight-color);
+  background: rgba(var(--accent-color-rgb, 59, 76, 202), 0.2);
+  border-left: 3px solid var(--highlight-color);
 }
 
 #file-tree li.placeholder {
@@ -215,26 +216,13 @@ body.arcade-bg {
 }
 
 .file-icon {
-  margin: 0 4px;
+  margin: 0 6px;
   font-size: 14px;
   width: 16px;
   height: 16px;
   text-align: center;
   line-height: 16px;
   color: var(--secondary-foreground);
-}
-
-#file-tree .toggle-icon {
-  width: 12px;
-  margin: 0 2px;
-  display: inline-block;
-  font-size: 14px;
-  color: var(--secondary-foreground);
-  transition: transform var(--transition-ease);
-}
-
-#file-tree .toggle-icon.expanded {
-  transform: rotate(90deg);
 }
 
 #file-tree .folder > ul {
@@ -260,28 +248,95 @@ body.arcade-bg {
   opacity: 1 !important;
 }
 
-.folder-header {
+.toggle {
+  cursor: pointer;
+  margin-right: 5px;
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+}
+
+.folder.expanded .toggle i.fa-chevron-right {
+  transform: rotate(90deg);
+}
+
+.file-content {
   display: flex;
   align-items: center;
   width: 100%;
-  padding-left: calc(var(--depth, 0) * 8px + 10px);
 }
 
 .file-name {
-  flex-grow: 1;
   margin-left: 5px;
 }
 
 #file-tree li.folder > .folder-header > .file-name {
   font-weight: 500;
-  color: var(--highlight-color);
+  color: var(--primary-foreground);
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding-left: calc(var(--depth, 0) * 10px + 10px);
 }
 
 #file-tree ul {
   list-style: none;
   margin: 0;
-  padding-left: calc(var(--depth, 0) * 8px + 10px);
+  padding-left: calc(var(--depth, 0) * 10px + 10px);
   width: 100%;
+}
+
+/* Recent Projects */
+.recent-projects {
+  padding: 8px 10px;
+  border-bottom: var(--border-style) var(--sidebar-border);
+  border-right: var(--border-style) var(--sidebar-border);
+}
+
+.recent-projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.recent-projects h4 {
+  font-family: var(--header-font);
+  font-size: 12px;
+  color: var(--primary-foreground);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+#recent-projects-list {
+  list-style: none;
+  font-size: 12px;
+}
+
+#recent-projects-list li {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  cursor: pointer;
+  color: var(--primary-foreground);
+  transition: background var(--transition-ease);
+}
+
+#recent-projects-list li:hover {
+  background: var(--tertiary-background);
+}
+
+#recent-projects-list li.placeholder {
+  color: var(--secondary-foreground);
+  font-style: italic;
+  cursor: default;
+}
+
+#recent-projects-list li.placeholder:hover {
+  background: none;
 }
 
 /* Main Content */
@@ -355,7 +410,6 @@ body.arcade-bg {
   display: flex;
   height: 35px;
   background: var(--primary-background);
-  border-bottom: var(--border-style) var(--sidebar-border);
   overflow-x: auto;
 }
 
@@ -764,6 +818,7 @@ body.arcade-bg {
   font-size: 14px;
   color: var(--accent-color);
   margin: 0;
+  font-weight: bold;
 }
 
 /* Toast Notification */

@@ -31,7 +31,7 @@
 
   /* Borders and transitions */
   --border-radius: 4px;
-  --border-style: 2px solid;
+  --border-style: 1px solid;
   --transition-ease: 0.2s ease;
 }
 
@@ -64,45 +64,91 @@ body.arcade-bg {
 /* Sidebar */
 .arcade-sidebar {
   background: var(--sidebar-background);
-  border-right: var(--border-style) var(--sidebar-border);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
-  width: 220px;
+  width: 250px;
   flex-shrink: 0;
   transition: width var(--transition-ease);
+  overflow: hidden;
 }
 
 .arcade-sidebar.collapsed {
-  width: 40px;
+  width: 48px; /* Narrower, like VS Code's activity bar */
+}
+
+/* Activity Bar (new section for VS Code-like icons) */
+.sidebar-activity {
+  background: var(--primary-background);
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  border-right: var(--border-style) var(--sidebar-border);
+}
+
+.sidebar-activity button {
+  background: none;
+  border: none;
+  color: var(--secondary-foreground);
+  font-size: 24px; /* Larger icons like VS Code */
+  padding: 12px;
+  cursor: pointer;
+  transition: color var(--transition-ease), background var(--transition-ease);
+}
+
+.sidebar-activity button:hover {
+  color: var(--primary-foreground);
+  background: var(--tertiary-background);
+}
+
+/* .sidebar-activity button.active {
+  color: var(--highlight-color);
+} */
+
+/* Sidebar Content (Explorer, Recent Projects, etc.) */
+.sidebar-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  width: 202px; /* Remaining space */
+  background: var(--sidebar-background);
+}
+
+.arcade-sidebar.collapsed .sidebar-content {
+  display: none;
 }
 
 .sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 10px;
-  background: var(--primary-background);
+  padding: 8px 10px;
+  background: var(--sidebar-background);
   border-bottom: var(--border-style) var(--sidebar-border);
+  border-right: var(--border-style) var(--sidebar-border);
   height: 40px;
 }
 
 .sidebar-header span {
   font-family: var(--header-font);
-  font-size: 14px;
+  font-size: 12px;
   color: var(--primary-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .sidebar-buttons {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sidebar-buttons button {
   background: none;
   border: none;
   color: var(--secondary-foreground);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   transition: color var(--transition-ease);
 }
@@ -111,60 +157,11 @@ body.arcade-bg {
   color: var(--primary-foreground);
 }
 
+/* Adjust collapsed state */
 .arcade-sidebar.collapsed .sidebar-header span,
 .arcade-sidebar.collapsed #file-tree,
 .arcade-sidebar.collapsed .recent-projects {
   display: none;
-}
-
-.arcade-sidebar.collapsed .sidebar-buttons {
-  flex-direction: column;
-  align-items: center;
-}
-
-.arcade-sidebar.collapsed .sidebar-buttons button:not(#btn-toggle-sidebar) {
-  display: none;
-}
-
-/* Recent Projects */
-.recent-projects {
-  padding: 8px 10px;
-  border-bottom: var(--border-style) var(--sidebar-border);
-}
-
-.recent-projects h4 {
-  font-family: var(--header-font);
-  font-size: 12px;
-  color: var(--primary-foreground);
-  margin-bottom: 5px;
-}
-
-#recent-projects-list {
-  list-style: none;
-  font-size: 12px;
-}
-
-#recent-projects-list li {
-  display: flex;
-  align-items: center;
-  padding: 2px 0;
-  cursor: pointer;
-  color: var(--primary-foreground);
-  transition: background var(--transition-ease);
-}
-
-#recent-projects-list li:hover {
-  background: var(--tertiary-background);
-}
-
-#recent-projects-list li.placeholder {
-  color: var(--secondary-foreground);
-  font-style: italic;
-  cursor: default;
-}
-
-#recent-projects-list li.placeholder:hover {
-  background: none;
 }
 
 /* File Tree */
@@ -175,16 +172,17 @@ body.arcade-bg {
   padding: 8px 0;
   margin: 0;
   font-size: 12px;
+  border-right: var(--border-style) var(--sidebar-border);
 }
 
 #file-tree li {
   display: flex;
   align-items: center;
-  padding: 2px 0;
+  padding: 4px 0 4px 10px;
   cursor: pointer;
   transition: background var(--transition-ease);
   color: var(--primary-foreground);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 #file-tree li.folder {
@@ -198,8 +196,8 @@ body.arcade-bg {
 }
 
 #file-tree li.selected {
-  background: rgba(var(--accent-color-rgb, 59, 76, 202), 0.125);
-  border-left: var(--border-style) var(--highlight-color);
+  background: rgba(var(--accent-color-rgb, 59, 76, 202), 0.2);
+  border-left: 3px solid var(--highlight-color);
 }
 
 #file-tree li.placeholder {
@@ -219,7 +217,7 @@ body.arcade-bg {
 }
 
 .file-icon {
-  margin: 0 4px;
+  margin: 0 6px;
   font-size: 14px;
   width: 16px;
   height: 16px;
@@ -255,6 +253,8 @@ body.arcade-bg {
   cursor: pointer;
   margin-right: 5px;
   display: inline-block;
+  width: 14px;
+  text-align: center;
 }
 
 .folder.expanded .toggle i.fa-chevron-right {
@@ -264,6 +264,7 @@ body.arcade-bg {
 .file-content {
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .file-name {
@@ -272,21 +273,71 @@ body.arcade-bg {
 
 #file-tree li.folder > .folder-header > .file-name {
   font-weight: 500;
-  color: var(--highlight-color);
+  color: var(--primary-foreground);
 }
 
 .folder-header {
   display: flex;
   align-items: center;
   width: 100%;
-  padding-left: calc(var(--depth, 0) * 8px + 10px);
+  padding-left: calc(var(--depth, 0) * 10px + 10px);
 }
 
 #file-tree ul {
   list-style: none;
   margin: 0;
-  padding-left: calc(var(--depth, 0) * 8px + 10px);
+  padding-left: calc(var(--depth, 0) * 10px + 10px);
   width: 100%;
+}
+
+/* Recent Projects */
+.recent-projects {
+  padding: 8px 10px;
+  border-bottom: var(--border-style) var(--sidebar-border);
+  border-right: var(--border-style) var(--sidebar-border);
+}
+
+.recent-projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.recent-projects h4 {
+  font-family: var(--header-font);
+  font-size: 12px;
+  color: var(--primary-foreground);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+#recent-projects-list {
+  list-style: none;
+  font-size: 12px;
+}
+
+#recent-projects-list li {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  cursor: pointer;
+  color: var(--primary-foreground);
+  transition: background var(--transition-ease);
+}
+
+#recent-projects-list li:hover {
+  background: var(--tertiary-background);
+}
+
+#recent-projects-list li.placeholder {
+  color: var(--secondary-foreground);
+  font-style: italic;
+  cursor: default;
+}
+
+#recent-projects-list li.placeholder:hover {
+  background: none;
 }
 
 /* Main Content */
@@ -360,7 +411,6 @@ body.arcade-bg {
   display: flex;
   height: 35px;
   background: var(--primary-background);
-  border-bottom: var(--border-style) var(--accent-color);
   overflow-x: auto;
 }
 
@@ -738,6 +788,29 @@ body.arcade-bg {
 }
 .custom-dialog .cancel-button:hover {
   background: var(--tertiary-background);
+}
+
+/* Music Popup */
+.music-popup {
+  display: none;
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  background: var(--dialog-background);
+  border: var(--border-style) var(--accent-color);
+  padding: 10px 20px;
+  border-radius: var(--border-radius);
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.music-popup p {
+  font-family: var(--header-font);
+  font-size: 14px;
+  color: var(--accent-color);
+  margin: 0;
+  font-weight: bold;
 }
 
 /* Toast Notification */
