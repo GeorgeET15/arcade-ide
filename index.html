@@ -65,6 +65,19 @@
             </button>
           </div>
         </div>
+        <div class="recent-projects">
+          <h4>Recent Projects</h4>
+          <button
+            id="btn-clear-recent-projects"
+            title="Clear Recent Projects"
+            class="arcade-button"
+          >
+            <i class="fas fa-trash"></i> Clear
+          </button>
+          <ul id="recent-projects-list">
+            <li class="placeholder">No recent projects</li>
+          </ul>
+        </div>
         <ul id="file-tree">
           <li class="placeholder">Open a folder to see files</li>
         </ul>
@@ -170,16 +183,39 @@
           <option value="style.css">Charcoal-Teal</option>
           <option value="themes/neon-purple.css">Neon-Purple</option>
           <option value="themes/retro-red.css">Retro-Red</option>
+          <option value="themes/cyber-green.css">Cyber Green</option>
           <option value="themes/vs-dark.css">VS-Dark</option>
           <option value="themes/vs-light.css">VS-Light</option>
           <option value="themes/github-dark.css">GitHub-Dark</option>
         </select>
+        <label for="build-tool-path">Build Tool Path:</label>
+        <input
+          id="build-tool-path"
+          type="text"
+          placeholder="e.g., mingw32-make"
+        />
+        <label for="auto-save">Auto-Save:</label>
+        <input id="auto-save" type="checkbox" />
+        <label for="font-size">Editor Font Size:</label>
+        <input id="font-size" type="number" min="8" max="24" value="12" />
+        <label for="file-extensions"
+          >Visible File Extensions (comma-separated):</label
+        >
+        <input
+          id="file-extensions"
+          type="text"
+          placeholder="c,h,png,wav,makefile"
+        />
+        <label for="log-level">Log Level:</label>
+        <select id="log-level">
+          <option value="debug">Debug</option>
+          <option value="info" selected>Info</option>
+          <option value="error">Error</option>
+        </select>
         <button id="btn-close-settings" class="arcade-button">Close</button>
       </div>
     </div>
-    <!-- Audio element for background music -->
     <audio id="bg-music" preload="auto"></audio>
-    <!-- Pop-up message for music toggle -->
     <div id="music-popup" class="music-popup">
       <p id="music-popup-message"></p>
     </div>
@@ -211,10 +247,9 @@
           const introMessage = document.getElementById("intro-message");
           let isPlaying = false;
           let lastClickTime = 0;
-          const doubleClickDelay = 300; // 300ms for double-click detection
-          let currentSong = null; // Track current song to avoid replaying it
+          const doubleClickDelay = 300;
+          let currentSong = null;
 
-          // Motivational, cool, and awesome retro-themed messages for new songs
           const popupMessages = [
             "Unleash your 8-bit genius with arcade.h! Let’s code a legend!",
             "Pixel power activated! Build epic 2D games with arcade.h!",
@@ -226,7 +261,6 @@
             "Retro coding mode: ON! Build a 2D epic with arcade.h!",
           ];
 
-          // Debug DOM elements
           console.log("Audio element:", audio ? "Found" : "Not found");
           console.log(
             "Headphones button:",
@@ -240,7 +274,6 @@
           console.log("Output area:", outputArea ? "Found" : "Not found");
           console.log("Intro message:", introMessage ? "Found" : "Not found");
 
-          // Check intro message visibility
           if (introMessage) {
             const computedStyle = window.getComputedStyle(introMessage);
             console.log(
@@ -262,7 +295,6 @@
               outputArea.textContent = "Error: Intro message not found";
           }
 
-          // Headphones button event listener
           if (!headphonesBtn) {
             console.error(
               "Cannot attach event listener: Headphones button not found"
@@ -277,11 +309,9 @@
             const timeSinceLastClick = currentTime - lastClickTime;
 
             if (timeSinceLastClick < doubleClickDelay) {
-              // Double click: Play new song with message
               console.log("Double-click detected, playing new song");
-              await playRandomSong(true); // Force new song
+              await playRandomSong(true);
             } else {
-              // Single click: Toggle play/pause/resume
               console.log("Single click detected");
               if (isPlaying) {
                 audio.pause();
@@ -290,13 +320,12 @@
               } else {
                 if (!audio.src || !currentSong) {
                   console.log("No audio source, playing new song");
-                  await playRandomSong(); // New song with message
+                  await playRandomSong();
                 } else {
                   try {
                     await audio.play();
                     isPlaying = true;
                     console.log("Resumed playback");
-                    // No message for resume
                   } catch (error) {
                     console.error("Playback resume failed:", error.message);
                     if (outputArea) {
@@ -309,6 +338,31 @@
             lastClickTime = currentTime;
           });
           console.log("Click event listener attached to headphones button");
+
+          audio.addEventListener("play", async () => {
+            if (audio.src) {
+              console.log(`Saving last played song: ${audio.src}`);
+              await window.electronAPI.setSettings("lastSong", audio.src);
+            }
+          });
+
+          async function loadLastSong() {
+            const lastSong = await window.electronAPI.getSettings(
+              "lastSong",
+              null
+            );
+            if (lastSong && musicFiles.includes(lastSong)) {
+              console.log(`Loading last played song: ${lastSong}`);
+              audio.src = lastSong;
+              currentSong = lastSong;
+              try {
+                await audio.play();
+                isPlaying = true;
+              } catch (error) {
+                console.error(`Failed to play last song: ${error.message}`);
+              }
+            }
+          }
 
           async function verifyMusicFiles() {
             console.log("Verifying music files...");
@@ -342,7 +396,6 @@
           function showMusicPopup() {
             if (musicPopup && musicPopupMessage) {
               console.log("Showing music popup");
-              // Select random motivational message
               const randomMessage =
                 popupMessages[Math.floor(Math.random() * popupMessages.length)];
               musicPopupMessage.textContent = randomMessage;
@@ -372,7 +425,6 @@
             }
             let selectedFile;
             if (forceNew && validFiles.length > 1) {
-              // Ensure a different song is selected
               const availableFiles = validFiles.filter(
                 (file) => file !== currentSong
               );
@@ -392,7 +444,7 @@
                 await audio.play();
                 console.log("Playback started");
                 isPlaying = true;
-                showMusicPopup(); // Show message for new song
+                showMusicPopup();
               } catch (error) {
                 console.error("Playback failed:", error.message);
                 isPlaying = false;
@@ -406,6 +458,8 @@
                 outputArea.textContent = "Error: Audio element not found";
             }
           }
+
+          loadLastSong();
 
           if (audio) {
             audio.addEventListener("error", () => {
@@ -426,7 +480,6 @@
             );
           }
 
-          // Debug CSP violations
           document.addEventListener("securitypolicyviolation", (e) => {
             console.error(
               "CSP violation:",

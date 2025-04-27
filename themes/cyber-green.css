@@ -1,29 +1,29 @@
-/* VS-Light Theme for Arcade IDE (Inspired by Visual Studio Code Light Theme) */
+/* Cyber-Green Theme for Arcade IDE (Dark Background with Neon Green Accents) */
 :root {
   /* Core colors */
-  --primary-background: #ffffff; /* white */
-  --secondary-background: #f3f3f3; /* light gray */
-  --tertiary-background: #e8e8e8; /* slightly darker white */
-  --primary-foreground: #333333; /* dark gray */
-  --secondary-foreground: #666666; /* muted gray */
-  --accent-color: #0078d7; /* VS Code blue */
-  --highlight-color: #0078d7; /* VS Code blue */
-  --warning-color: #986801; /* VS Code yellow */
-  --error-color: #d16969; /* VS Code error red */
+  --primary-background: #1a231a; /* dark green */
+  --secondary-background: #2a382a; /* darker green-gray */
+  --tertiary-background: #3e4c3e; /* hover green-gray */
+  --primary-foreground: #e6ffe6; /* soft green-white */
+  --secondary-foreground: #99cc99; /* muted green */
+  --accent-color: #00ff00; /* neon green */
+  --highlight-color: #33ff33; /* bright green */
+  --warning-color: #ccff66; /* light green-yellow */
+  --error-color: #ff6666; /* error red */
 
   /* UI-specific colors */
-  --sidebar-background: #f3f3f3; /* light gray */
-  --sidebar-border: #d4d4d4; /* subtle border */
-  --toolbar-background: #f3f3f3; /* light gray */
-  --tab-background: #f3f3f3; /* light gray */
-  --tab-active-background: #ffffff; /* white */
-  --tab-modified-indicator: #986801; /* VS Code yellow */
-  --editor-background: #ffffff; /* white */
-  --output-background: #f3f3f3; /* light gray */
-  --dialog-background: #f3f3f3; /* light gray */
-  --dialog-input-background: #ffffff; /* white */
-  --toast-background: #f3f3f3; /* light gray */
-  --toast-border: #0078d7; /* VS Code blue */
+  --sidebar-background: #2a382a; /* darker green-gray */
+  --sidebar-border: #00ff00; /* neon green */
+  --toolbar-background: #2a382a; /* darker green-gray */
+  --tab-background: #2a382a; /* darker green-gray */
+  --tab-active-background: #1a231a; /* dark green */
+  --tab-modified-indicator: #ccff66; /* light green-yellow */
+  --editor-background: #1a231a; /* dark green */
+  --output-background: #2a382a; /* darker green-gray */
+  --dialog-background: #2a382a; /* darker green-gray */
+  --dialog-input-background: #1a231a; /* dark green */
+  --toast-background: #2a382a; /* darker green-gray */
+  --toast-border: #33ff33; /* bright green */
 
   /* Fonts */
   --primary-font: "Fira Code", monospace;
@@ -31,7 +31,7 @@
 
   /* Borders and transitions */
   --border-radius: 4px;
-  --border-style: 1px solid;
+  --border-style: 2px solid;
   --transition-ease: 0.2s ease;
 }
 
@@ -45,7 +45,11 @@
 body.arcade-bg {
   font-family: var(--primary-font);
   color: var(--primary-foreground);
-  background: var(--primary-background);
+  background: linear-gradient(
+    180deg,
+    var(--primary-background) 0%,
+    #0b1c1f 50%
+  );
   display: flex;
   height: 100vh;
   overflow: hidden;
@@ -78,7 +82,7 @@ body.arcade-bg {
   justify-content: space-between;
   align-items: center;
   padding: 0 10px;
-  background: var(--tertiary-background);
+  background: var(--primary-background);
   border-bottom: var(--border-style) var(--sidebar-border);
   height: 40px;
 }
@@ -146,7 +150,7 @@ body.arcade-bg {
   padding: 2px 0;
   cursor: pointer;
   color: var(--primary-foreground);
-  transition: background 0.1s ease;
+  transition: background var(--transition-ease);
 }
 
 #recent-projects-list li:hover {
@@ -178,7 +182,7 @@ body.arcade-bg {
   align-items: center;
   padding: 2px 0;
   cursor: pointer;
-  transition: background 0.1s ease;
+  transition: background var(--transition-ease);
   color: var(--primary-foreground);
   line-height: 1.4;
 }
@@ -190,12 +194,12 @@ body.arcade-bg {
 }
 
 #file-tree li:hover {
-  background: #e8e8e840; /* semi-transparent subtle hover */
+  background: var(--tertiary-background);
 }
 
 #file-tree li.selected {
-  background: #0078d720; /* semi-transparent VS Code blue */
-  border-left: 2px solid var(--highlight-color);
+  background: rgba(var(--accent-color-rgb, 59, 76, 202), 0.125);
+  border-left: var(--border-style) var(--highlight-color);
 }
 
 #file-tree li.placeholder {
@@ -224,19 +228,6 @@ body.arcade-bg {
   color: var(--secondary-foreground);
 }
 
-#file-tree .toggle-icon {
-  width: 12px;
-  margin: 0 2px;
-  display: inline-block;
-  font-size: 14px;
-  color: var(--secondary-foreground);
-  transition: transform var(--transition-ease);
-}
-
-#file-tree .toggle-icon.expanded {
-  transform: rotate(90deg);
-}
-
 #file-tree .folder > ul {
   display: none !important;
   margin: 0;
@@ -260,21 +251,35 @@ body.arcade-bg {
   opacity: 1 !important;
 }
 
-.folder-header {
+.toggle {
+  cursor: pointer;
+  margin-right: 5px;
+  display: inline-block;
+}
+
+.folder.expanded .toggle i.fa-chevron-right {
+  transform: rotate(90deg);
+}
+
+.file-content {
   display: flex;
   align-items: center;
-  width: 100%;
-  padding-left: calc(var(--depth, 0) * 8px + 10px);
 }
 
 .file-name {
-  flex-grow: 1;
   margin-left: 5px;
 }
 
 #file-tree li.folder > .folder-header > .file-name {
   font-weight: 500;
   color: var(--highlight-color);
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding-left: calc(var(--depth, 0) * 8px + 10px);
 }
 
 #file-tree ul {
@@ -299,7 +304,7 @@ body.arcade-bg {
   align-items: center;
   padding: 0 8px;
   background: var(--toolbar-background);
-  border-bottom: var(--border-style) var(--sidebar-border);
+  border-bottom: var(--border-style) var(--accent-color);
   height: 40px;
 }
 
@@ -340,7 +345,7 @@ body.arcade-bg {
 
 .arcade-button#btn-settings:hover,
 .arcade-button#btn-headphones:hover {
-  background: var(--tertiary-background);
+  background: var(--accent-color);
   border: none;
 }
 
@@ -355,7 +360,7 @@ body.arcade-bg {
   display: flex;
   height: 35px;
   background: var(--primary-background);
-  border-bottom: var(--border-style) var(--sidebar-border);
+  border-bottom: var(--border-style) var(--accent-color);
   overflow-x: auto;
 }
 
@@ -373,7 +378,7 @@ body.arcade-bg {
   height: 100%;
   flex-shrink: 0;
   max-width: 200px;
-  border-right: var(--border-style) var(--sidebar-border);
+  border-right: 1px solid var(--accent-color);
   cursor: pointer;
   transition: all var(--transition-ease);
 }
@@ -381,11 +386,11 @@ body.arcade-bg {
 .tab.active {
   background: var(--tab-active-background);
   color: var(--primary-foreground);
-  border-top: 2px solid var(--highlight-color);
+  border-top: var(--border-style) var(--highlight-color);
 }
 
 .tab:hover {
-  background: var(--tertiary-background);
+  background: var(--accent-color);
 }
 
 .tab-name {
@@ -490,7 +495,7 @@ body.arcade-bg {
 .intro-content {
   text-align: center;
   background: var(--secondary-background);
-  border: var(--border-style) var(--sidebar-border);
+  border: var(--border-style) var(--accent-color);
   padding: 20px;
   border-radius: var(--border-radius);
 }
@@ -567,7 +572,7 @@ body.arcade-bg {
   display: flex;
   flex-direction: column;
   background: var(--output-background);
-  border-top: var(--border-style) var(--sidebar-border);
+  border-top: var(--border-style) var(--accent-color);
   height: 200px;
   flex-shrink: 0;
   overflow: hidden;
@@ -583,8 +588,8 @@ body.arcade-bg {
   justify-content: space-between;
   align-items: center;
   padding: 0 10px;
-  background: var(--tertiary-background);
-  border-bottom: var(--border-style) var(--sidebar-border);
+  background: var(--primary-background);
+  border-bottom: var(--border-style) var(--accent-color);
   height: 28px;
 }
 
@@ -636,7 +641,7 @@ body.arcade-bg {
 
 .settings-content {
   background: var(--dialog-background);
-  border: var(--border-style) var(--sidebar-border);
+  border: var(--border-style) var(--accent-color);
   width: 300px;
   padding: 20px;
   border-radius: var(--border-radius);
@@ -663,7 +668,7 @@ body.arcade-bg {
   width: 100%;
   padding: 5px;
   background: var(--dialog-input-background);
-  border: var(--border-style) var(--sidebar-border);
+  border: 1px solid var(--accent-color);
   color: var(--primary-foreground);
   font-family: var(--primary-font);
   font-size: 12px;
@@ -684,43 +689,38 @@ body.arcade-bg {
   background: var(--dialog-background);
   color: var(--primary-foreground);
   padding: 20px;
-  border: var(--border-style) var(--sidebar-border);
+  border: var(--border-style) var(--accent-color);
   max-width: 400px;
   width: 90%;
   font-family: var(--primary-font);
   z-index: 1000;
   border-radius: var(--border-radius);
 }
-
 .custom-dialog h2 {
   margin: 0 0 10px;
   font-size: 15px;
   font-family: var(--header-font);
   color: var(--highlight-color);
 }
-
 .custom-dialog p {
   margin: 0 0 15px;
   font-size: 14px;
 }
-
 .custom-dialog input {
   width: 100%;
   padding: 8px;
   margin-bottom: 15px;
   background: var(--dialog-input-background);
-  border: var(--border-style) var(--secondary-foreground);
+  border: 1px solid var(--secondary-foreground);
   color: var(--primary-foreground);
   font-size: 14px;
   font-family: var(--primary-font);
 }
-
 .custom-dialog .dialog-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
-
 .custom-dialog button {
   padding: 8px 16px;
   border: none;
@@ -728,41 +728,16 @@ body.arcade-bg {
   font-size: 14px;
   font-family: var(--primary-font);
 }
-
 .custom-dialog .ok-button {
   background: var(--accent-color);
   color: var(--primary-foreground);
 }
-
 .custom-dialog .cancel-button {
   background: var(--secondary-foreground);
   color: var(--primary-background);
 }
-
 .custom-dialog .cancel-button:hover {
   background: var(--tertiary-background);
-}
-
-/* Music Popup */
-.music-popup {
-  display: none;
-  position: fixed;
-  top: 60px;
-  right: 20px;
-  background: var(--dialog-background);
-  border: var(--border-style) var(--accent-color);
-  padding: 10px 20px;
-  border-radius: var(--border-radius);
-  z-index: 2000;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.music-popup p {
-  font-family: var(--header-font);
-  font-size: 14px;
-  color: var(--accent-color);
-  margin: 0;
 }
 
 /* Toast Notification */

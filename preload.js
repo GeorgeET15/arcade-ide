@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getPlatform: () => ipcRenderer.invoke("platform:get"),
   openFile: () => ipcRenderer.invoke("dialog:openFile"),
   saveFile: (filePath, content) =>
-    ipcRenderer.invoke("file:saveFile", filePath, content),
+    ipcRenderer.invoke("fs:saveFile", filePath, content),
   runOrBuild: (filePath, code) =>
     ipcRenderer.invoke("code:runOrBuild", filePath, code),
   openFolder: () => ipcRenderer.invoke("dialog:openFolder"),
@@ -19,24 +19,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("fs:createFolder", folderPath),
   newArcadeProject: (folderPath) =>
     ipcRenderer.invoke("project:newArcade", folderPath),
-  getIconClass: (fileName, isDir) => {
-    console.log(`Getting icon for ${fileName}, isDir: ${isDir}`);
-    if (isDir) {
-      return "fas fa-folder";
-    }
-    const fileNameLower = fileName.toLowerCase();
-    if (fileNameLower === "makefile") {
-      return "fas fa-cog";
-    }
-    if (fileNameLower.endsWith(".c") || fileNameLower.endsWith(".h")) {
-      return "fas fa-code";
-    }
-    if (fileNameLower.endsWith(".png")) {
-      return "fas fa-image";
-    }
-    if (fileNameLower.endsWith(".wav")) {
-      return "fas fa-music";
-    }
-    return "fas fa-file";
-  },
+  renameFile: (oldPath, newPath) =>
+    ipcRenderer.invoke("fs:renameFile", oldPath, newPath),
+  deleteFile: (filePath) => ipcRenderer.invoke("fs:deleteFile", filePath),
+  getIconClass: (fileName, isDir) =>
+    ipcRenderer.invoke("icon:getClass", fileName, isDir),
+  showContextMenu: (filePath, isDir) =>
+    ipcRenderer.invoke("menu:showContextMenu", filePath, isDir),
+  pathJoin: (...args) => ipcRenderer.invoke("path:join", ...args),
+  onContextMenuAction: (callback) =>
+    ipcRenderer.on("contextMenu:action", (event, data) =>
+      callback(data.action, data.filePath)
+    ),
+  showInputDialog: (options) => ipcRenderer.invoke("dialog:showInput", options),
 });

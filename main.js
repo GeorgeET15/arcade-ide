@@ -1,4 +1,11 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  protocol,
+  Menu,
+} = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
 const { exec } = require("child_process");
@@ -49,6 +56,28 @@ async function fileExists(filePath) {
     return true;
   } catch (e) {
     console.warn(`File does not exist: ${filePath}`);
+    return false;
+  }
+}
+
+// Validate build tools
+async function checkBuildTools() {
+  const buildTool =
+    config.buildToolPath ||
+    (process.platform === "win32" ? "mingw32-make" : "make");
+  try {
+    await execPromise("gcc --version");
+    await execPromise(`${buildTool} --version`);
+    console.log("Build tools validated successfully");
+    return true;
+  } catch (error) {
+    console.error("Build tools validation failed:", error);
+    dialog.showErrorBox(
+      "Build Tools Missing",
+      "Please install gcc and " +
+        (process.platform === "win32" ? "mingw32-make" : "make") +
+        "."
+    );
     return false;
   }
 }
@@ -113,6 +142,7 @@ async function createWindow() {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
+        enableRemoteModule: true,
       },
       title: "Arcade IDE",
       icon: iconPath,
@@ -121,8 +151,19 @@ async function createWindow() {
     mainWindow.setMenu(null);
 
     console.log(`Loading index.html from: ${indexPath}`);
-    await mainWindow.loadFile(indexPath);
-    console.log("index.html loaded successfully");
+    try {
+      await mainWindow.loadFile(indexPath);
+      console.log("index.html loaded successfully");
+      mainWindow.webContents.openDevTools();
+    } catch (loadError) {
+      console.error(`Failed to load index.html: ${loadError.message}`);
+      dialog.showErrorBox(
+        "Error",
+        `Failed to load index.html: ${loadError.message}`
+      );
+      app.quit();
+      return;
+    }
   } catch (error) {
     console.error(`Error in createWindow: ${error.message}`);
     console.error(error.stack);
@@ -136,6 +177,8 @@ async function createWindow() {
   mainWindow.on("close", () => {
     saveBounds();
   });
+
+  checkBuildTools();
 }
 
 function saveBounds() {
@@ -223,8 +266,8 @@ ipcMain.handle("dialog:openFile", async () => {
   }
 });
 
-ipcMain.handle("file:saveFile", async (event, filePathToSave, content) => {
-  console.log(`IPC file:saveFile called with filePath: ${filePathToSave}`);
+ipcMain.handle("fs:saveFile", async (event, filePathToSave, content) => {
+  console.log(`IPC fs:saveFile called with filePath: ${filePathToSave}`);
   let savePath = filePathToSave;
 
   if (!savePath) {
@@ -262,84 +305,47 @@ ipcMain.handle("dialog:openFolder", async () => {
   }
   const folderPath = filePaths[0];
   config.lastOpenFolder = folderPath;
+  config.recentFolders = config.recentFolders || [];
+  config.recentFolders = [
+    ...new Set([folderPath, ...config.recentFolders]),
+  ].slice(0, 5);
   saveConfig();
   return { canceled: false, folderPath, success: true };
-});
-
-ipcMain.handle("file:readDir", async (event, folderPath) => {
-  console.log(`IPC file:readDir called with folderPath: ${folderPath}`);
-  try {
-    const entries = await fs.readdir(folderPath, { withFileTypes: true });
-    const files = entries
-      .map((entry) => ({
-        name: entry.name,
-        isDir: entry.isDirectory(),
-        path: path.join(folderPath, entry.name),
-      }))
-      .filter((f) => f.isDir || /\.(c|h|makefile|png|wav)$/i.test(f.name))
-      .filter((f) => !f.name.startsWith("."))
-      .sort((a, b) => {
-        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-      });
-
-    return { success: true, files };
-  } catch (error) {
-    console.error(`Error reading directory ${folderPath}:`, error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle("file:readFile", async (event, filePath) => {
-  console.log(`IPC file:readFile called with filePath: ${filePath}`);
-  try {
-    const content = await fs.readFile(filePath, "utf-8");
-    return { success: true, content };
-  } catch (error) {
-    console.error(`Error reading file ${filePath}:`, error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle("file:writeFile", async (event, filePath, content) => {
-  console.log(`IPC file:writeFile called with filePath: ${filePath}`);
-  try {
-    await fs.writeFile(filePath, content, "utf-8");
-    return { success: true };
-  } catch (error) {
-    console.error(`Error writing file ${filePath}:`, error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle("file:createFolder", async (event, folderPath) => {
-  console.log(`IPC file:createFolder called with folderPath: ${folderPath}`);
-  try {
-    await fs.mkdir(folderPath, { recursive: true });
-    return { success: true };
-  } catch (error) {
-    console.error(`Error creating folder ${folderPath}:`, error);
-    return { success: false, error: error.message };
-  }
 });
 
 ipcMain.handle("fs:readDir", async (event, folderPath) => {
   console.log(`IPC fs:readDir called with folderPath: ${folderPath}`);
   try {
     const entries = await fs.readdir(folderPath, { withFileTypes: true });
+    const allowedExtensions = config.fileExtensions || [
+      "c",
+      "h",
+      "makefile",
+      "png",
+      "wav",
+    ];
     const files = entries
       .map((entry) => ({
         name: entry.name,
         isDir: entry.isDirectory(),
         path: path.join(folderPath, entry.name),
       }))
-      .filter((f) => f.isDir || /\.(c|h|makefile|png|wav)$/i.test(f.name))
+      .filter(
+        (f) =>
+          f.isDir ||
+          allowedExtensions.includes(
+            path.extname(f.name).toLowerCase().slice(1)
+          )
+      )
       .filter((f) => !f.name.startsWith("."))
       .sort((a, b) => {
         if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
         return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       });
-
+    console.log(
+      `readDir returning ${files.length} files for ${folderPath}`,
+      files
+    );
     return { success: true, files };
   } catch (error) {
     console.error(`Error reading directory ${folderPath}:`, error);
@@ -380,6 +386,33 @@ ipcMain.handle("fs:createFolder", async (event, folderPath) => {
   }
 });
 
+ipcMain.handle("fs:renameFile", async (event, oldPath, newPath) => {
+  console.log(`IPC fs:renameFile called from ${oldPath} to ${newPath}`);
+  try {
+    await fs.rename(oldPath, newPath);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error renaming file: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("fs:deleteFile", async (event, filePath) => {
+  console.log(`IPC fs:deleteFile called for ${filePath}`);
+  try {
+    const stats = await fs.stat(filePath);
+    if (stats.isDirectory()) {
+      await fs.rm(filePath, { recursive: true });
+    } else {
+      await fs.unlink(filePath);
+    }
+    return { success: true };
+  } catch (error) {
+    console.error(`Error deleting file: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
   console.log(`IPC code:runOrBuild called with filePath: ${filePathToRun}`);
   if (!filePathToRun) {
@@ -412,6 +445,10 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
     console.log(`Checking arcade library files in: ${libDir}`);
     if (!(await fileExists(arcadeSource))) {
       console.error(`Arcade source not found at: ${arcadeSource}`);
+      dialog.showErrorBox(
+        "Build Error",
+        `arcade.c not found at ${arcadeSource}. Ensure the lib directory contains arcade.c.`
+      );
       return {
         success: false,
         output: `Error: arcade.c not found at ${arcadeSource}. Ensure the lib directory contains arcade.c.`,
@@ -419,6 +456,10 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
     }
     if (!(await fileExists(arcadeHeader))) {
       console.error(`Arcade header not found at: ${arcadeHeader}`);
+      dialog.showErrorBox(
+        "Build Error",
+        `arcade.h not found at ${arcadeHeader}. Ensure the lib directory contains arcade.h.`
+      );
       return {
         success: false,
         output: `Error: arcade.h not found at ${arcadeHeader}. Ensure the lib directory contains arcade.h.`,
@@ -427,6 +468,12 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
     for (const header of stbHeaders) {
       if (!(await fileExists(header))) {
         console.error(`STB header not found at: ${header}`);
+        dialog.showErrorBox(
+          "Build Error",
+          `STB header (${path.basename(
+            header
+          )}) not found at ${header}. Ensure all STB headers are present in lib.`
+        );
         return {
           success: false,
           output: `Error: STB header (${path.basename(
@@ -436,7 +483,20 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
       }
     }
 
-    // Escape paths for Makefile to handle spaces
+    let shouldBuild = true;
+    if (await fileExists(makefilePath)) {
+      const choice = await dialog.showMessageBox(mainWindow, {
+        type: "question",
+        buttons: ["Overwrite", "Use Existing", "Cancel"],
+        message: "A Makefile already exists. Overwrite it?",
+        defaultId: 1,
+      });
+      if (choice.response === 2) {
+        return { success: false, output: "Build canceled." };
+      }
+      shouldBuild = choice.response === 0;
+    }
+
     const escapedLibDir = libDir.replace(/\\/g, "/").replace(/"/g, '\\"');
     const escapedArcadeSource = arcadeSource
       .replace(/\\/g, "/")
@@ -445,7 +505,9 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
       .replace(/\\/g, "/")
       .replace(/"/g, '\\"');
 
-    const makefileContent = `
+    let buildOutput = "";
+    if (shouldBuild) {
+      const makefileContent = `
 CC = gcc
 CFLAGS = -Wall -I"${escapedLibDir}"
 TARGET = ${gameName}
@@ -462,9 +524,10 @@ all:
 clean:
 	rm -f "$(TARGET)" *.o
 `;
-    console.log(`Writing Makefile to: ${makefilePath}`);
-    console.log("Makefile content:\n", makefileContent);
-    await fs.writeFile(makefilePath, makefileContent, "utf-8");
+      console.log(`Writing Makefile to: ${makefilePath}`);
+      console.log("Makefile content:\n", makefileContent);
+      await fs.writeFile(makefilePath, makefileContent, "utf-8");
+    }
 
     const makeCommand =
       config.buildToolPath ||
@@ -473,7 +536,7 @@ clean:
     console.log(
       `Running Makefile: ${makeCommand} in ${dir} with TARGET=${gameName}`
     );
-    let buildOutput = `> ${makeCommand}\n`;
+    buildOutput = `> ${makeCommand}\n`;
     let buildSuccess = false;
 
     try {
@@ -580,13 +643,22 @@ all:
 clean:
 	rm -f "$(TARGET)" *.o
 `;
+    const sampleCode = `#include "arcade.h"\n\nint main() {\n  arcade_init(800, 600, "My Game", 0x000000);\n  while (arcade_running()) {\n    arcade_update();\n    arcade_render_scene(NULL, 0, NULL);\n  }\n  arcade_quit();\n  return 0;\n}\n`;
+
     await fs.writeFile(
       path.join(folderPath, "Makefile"),
       makefileContent,
       "utf-8"
     );
+    await fs.writeFile(path.join(folderPath, "game.c"), sampleCode, "utf-8");
 
     await fs.mkdir(path.join(folderPath, "assets"), { recursive: true });
+
+    config.recentFolders = config.recentFolders || [];
+    config.recentFolders = [
+      ...new Set([folderPath, ...config.recentFolders]),
+    ].slice(0, 5);
+    await saveConfig();
 
     return { success: true, folderPath };
   } catch (error) {
@@ -599,7 +671,6 @@ ipcMain.handle("project:newArcadeProject", async (event, folderPath) => {
   console.log(
     `IPC project:newArcadeProject called with folderPath: ${folderPath}`
   );
-  // Delegate to project:newArcade for compatibility
   return ipcMain.handle("project:newArcade")(event, folderPath);
 });
 
@@ -618,4 +689,71 @@ ipcMain.handle("icon:getClass", (event, fileName, isDir) => {
   const iconClass = iconMap[ext] || (isDir ? "fas fa-folder" : "fas fa-file");
   console.log(`Returning icon class: ${iconClass}`);
   return iconClass;
+});
+
+ipcMain.handle("menu:showContextMenu", async (event, filePath, isDir) => {
+  console.log(
+    `IPC menu:showContextMenu called for ${filePath}, isDir: ${isDir}`
+  );
+  const template = [
+    {
+      label: "Rename",
+      click: () => {
+        event.sender.send("contextMenu:action", { action: "rename", filePath });
+      },
+    },
+    {
+      label: "Delete",
+      click: () => {
+        event.sender.send("contextMenu:action", { action: "delete", filePath });
+      },
+    },
+  ];
+  if (isDir) {
+    template.unshift(
+      {
+        label: "New File",
+        click: () => {
+          event.sender.send("contextMenu:action", {
+            action: "newFile",
+            filePath,
+          });
+        },
+      },
+      {
+        label: "New Folder",
+        click: () => {
+          event.sender.send("contextMenu:action", {
+            action: "newFolder",
+            filePath,
+          });
+        },
+      }
+    );
+  }
+  const menu = Menu.buildFromTemplate(template);
+  menu.popup();
+});
+
+ipcMain.handle("dialog:showInput", async (event, options) => {
+  console.log(`IPC dialog:showInput called with options:`, options);
+  try {
+    const { response, input } = await dialog.showMessageBox(mainWindow, {
+      type: "question",
+      title: options.title || "Input",
+      message: options.message || "Enter value:",
+      buttons: ["OK", "Cancel"],
+      defaultId: 0,
+      cancelId: 1,
+      textInput: options.defaultInput || "",
+    });
+    console.log(`dialog:showInput response: ${response}, input: ${input}`);
+    if (response === 0 && input) {
+      return { value: input };
+    }
+    return { value: null };
+  } catch (error) {
+    console.error(`Error in dialog:showInput: ${error.message}`);
+    return { error: error.message };
+  }
 });

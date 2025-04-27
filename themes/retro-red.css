@@ -1,4 +1,41 @@
 /* Retro-Red Theme for Arcade IDE (Dark Background with Retro Red Accents) */
+:root {
+  /* Core colors */
+  --primary-background: #2a1b1b; /* dark red-brown */
+  --secondary-background: #3a2a2a; /* darker red-gray */
+  --tertiary-background: #4c3e3e; /* hover red-gray */
+  --primary-foreground: #ffe6e6; /* soft red-white */
+  --secondary-foreground: #cc9999; /* muted red */
+  --accent-color: #ff3333; /* bright red */
+  --highlight-color: #ff6666; /* lighter red */
+  --warning-color: #ff9999; /* light red */
+  --error-color: #ff3333; /* bright red */
+
+  /* UI-specific colors */
+  --sidebar-background: #3a2a2a; /* darker red-gray */
+  --sidebar-border: #ff3333; /* bright red */
+  --toolbar-background: #3a2a2a; /* darker red-gray */
+  --tab-background: #3a2a2a; /* darker red-gray */
+  --tab-active-background: #2a1b1b; /* dark red-brown */
+  --tab-modified-indicator: #ff9999; /* light red */
+  --editor-background: #2a1b1b; /* dark red-brown */
+  --output-background: #3a2a2a; /* darker red-gray */
+  --dialog-background: #3a2a2a; /* darker red-gray */
+  --dialog-input-background: #2a1b1b; /* dark red-brown */
+  --toast-background: #3a2a2a; /* darker red-gray */
+  --toast-border: #ff6666; /* lighter red */
+
+  /* Fonts */
+  --primary-font: "Fira Code", monospace;
+  --header-font: "IBM Plex Mono", monospace;
+
+  /* Borders and transitions */
+  --border-radius: 4px;
+  --border-style: 2px solid;
+  --transition-ease: 0.2s ease;
+}
+
+/* General Reset */
 * {
   margin: 0;
   padding: 0;
@@ -6,13 +43,13 @@
 }
 
 body.arcade-bg {
-  font-family: "Fira Code", monospace;
-  color: #ffd1d1; /* soft red-white */
+  font-family: var(--primary-font);
+  color: var(--primary-foreground);
   background: linear-gradient(
     180deg,
-    #2a1c1c 0%,
-    #140a0a 50%
-  ); /* dark red to black */
+    var(--primary-background) 0%,
+    #0b1c1f 50%
+  );
   display: flex;
   height: 100vh;
   overflow: hidden;
@@ -24,15 +61,16 @@ body.arcade-bg {
   height: 100%;
 }
 
+/* Sidebar */
 .arcade-sidebar {
-  background: #3a2c2c; /* dark red-gray */
-  border-right: 2px solid #ff4040; /* retro red */
+  background: var(--sidebar-background);
+  border-right: var(--border-style) var(--sidebar-border);
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 220px;
   flex-shrink: 0;
-  transition: width 0.2s ease;
+  transition: width var(--transition-ease);
 }
 
 .arcade-sidebar.collapsed {
@@ -44,15 +82,15 @@ body.arcade-bg {
   justify-content: space-between;
   align-items: center;
   padding: 0 10px;
-  background: #2a1c1c; /* dark red */
-  border-bottom: 2px solid #ff4040; /* retro red */
+  background: var(--primary-background);
+  border-bottom: var(--border-style) var(--sidebar-border);
   height: 40px;
 }
 
 .sidebar-header span {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--header-font);
   font-size: 14px;
-  color: #ffd1d1; /* soft red-white */
+  color: var(--primary-foreground);
 }
 
 .sidebar-buttons {
@@ -63,18 +101,19 @@ body.arcade-bg {
 .sidebar-buttons button {
   background: none;
   border: none;
-  color: #cc9999; /* muted red */
+  color: var(--secondary-foreground);
   font-size: 16px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color var(--transition-ease);
 }
 
 .sidebar-buttons button:hover {
-  color: #ffd1d1; /* soft red-white */
+  color: var(--primary-foreground);
 }
 
 .arcade-sidebar.collapsed .sidebar-header span,
-.arcade-sidebar.collapsed #file-tree {
+.arcade-sidebar.collapsed #file-tree,
+.arcade-sidebar.collapsed .recent-projects {
   display: none;
 }
 
@@ -83,16 +122,57 @@ body.arcade-bg {
   align-items: center;
 }
 
-/* Hide all buttons except btn-toggle-sidebar in collapsed state */
 .arcade-sidebar.collapsed .sidebar-buttons button:not(#btn-toggle-sidebar) {
   display: none;
 }
 
+/* Recent Projects */
+.recent-projects {
+  padding: 8px 10px;
+  border-bottom: var(--border-style) var(--sidebar-border);
+}
+
+.recent-projects h4 {
+  font-family: var(--header-font);
+  font-size: 12px;
+  color: var(--primary-foreground);
+  margin-bottom: 5px;
+}
+
+#recent-projects-list {
+  list-style: none;
+  font-size: 12px;
+}
+
+#recent-projects-list li {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  cursor: pointer;
+  color: var(--primary-foreground);
+  transition: background var(--transition-ease);
+}
+
+#recent-projects-list li:hover {
+  background: var(--tertiary-background);
+}
+
+#recent-projects-list li.placeholder {
+  color: var(--secondary-foreground);
+  font-style: italic;
+  cursor: default;
+}
+
+#recent-projects-list li.placeholder:hover {
+  background: none;
+}
+
+/* File Tree */
 #file-tree {
   list-style: none;
   flex-grow: 1;
   overflow-y: auto;
-  padding: 8px 0; /* Updated padding */
+  padding: 8px 0;
   margin: 0;
   font-size: 12px;
 }
@@ -102,9 +182,9 @@ body.arcade-bg {
   align-items: center;
   padding: 2px 0;
   cursor: pointer;
-  transition: background 0.1s ease;
-  color: #ffd1d1; /* soft red-white */
-  line-height: 1.4; /* Added line-height */
+  transition: background var(--transition-ease);
+  color: var(--primary-foreground);
+  line-height: 1.4;
 }
 
 #file-tree li.folder {
@@ -114,16 +194,16 @@ body.arcade-bg {
 }
 
 #file-tree li:hover {
-  background: #ff404040; /* semi-transparent retro red */
+  background: var(--tertiary-background);
 }
 
 #file-tree li.selected {
-  background: #ff404020; /* semi-transparent retro red */
-  border-left: 2px solid #ff6666; /* bright red */
+  background: rgba(var(--accent-color-rgb, 59, 76, 202), 0.125);
+  border-left: var(--border-style) var(--highlight-color);
 }
 
 #file-tree li.placeholder {
-  color: #cc9999; /* muted red */
+  color: var(--secondary-foreground);
   font-style: italic;
   padding-left: 20px;
   cursor: default;
@@ -135,37 +215,64 @@ body.arcade-bg {
 
 #file-tree li.placeholder.error {
   font-style: normal;
-  color: #ff6666; /* bright red */
+  color: var(--error-color);
 }
 
 .file-icon {
   margin: 0 4px;
-  font-size: 14px; /* Updated font-size */
+  font-size: 14px;
   width: 16px;
   height: 16px;
   text-align: center;
   line-height: 16px;
-  color: #cc9999; /* muted red */
+  color: var(--secondary-foreground);
 }
 
-#file-tree .toggle-icon {
-  width: 12px;
-  margin: 0 2px;
+#file-tree .folder > ul {
+  display: none !important;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#file-tree .folder.expanded > ul {
+  display: block !important;
+  visibility: visible !important;
+  height: auto !important;
+  min-height: 20px;
+  overflow: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+}
+
+#file-tree .folder > ul > li {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.toggle {
+  cursor: pointer;
+  margin-right: 5px;
   display: inline-block;
-  font-size: 14px; /* Updated font-size */
-  color: #cc9999; /* muted red */
-  transition: transform 0.2s ease;
 }
 
-#file-tree .toggle-icon.expanded {
+.folder.expanded .toggle i.fa-chevron-right {
   transform: rotate(90deg);
 }
 
-#file-tree ul {
-  list-style: none;
-  margin: 0;
-  padding-left: calc(var(--depth, 0) * 8px + 10px); /* Updated indentation */
-  width: 100%;
+.file-content {
+  display: flex;
+  align-items: center;
+}
+
+.file-name {
+  margin-left: 5px;
+}
+
+#file-tree li.folder > .folder-header > .file-name {
+  font-weight: 500;
+  color: var(--highlight-color);
 }
 
 .folder-header {
@@ -175,15 +282,14 @@ body.arcade-bg {
   padding-left: calc(var(--depth, 0) * 8px + 10px);
 }
 
-.file-name {
-  flex-grow: 1;
+#file-tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: calc(var(--depth, 0) * 8px + 10px);
+  width: 100%;
 }
 
-#file-tree li.folder > .folder-header > .file-name {
-  font-weight: 500;
-  color: #ff6666; /* bright red */
-}
-
+/* Main Content */
 .main-content {
   display: flex;
   flex-direction: column;
@@ -192,12 +298,13 @@ body.arcade-bg {
   overflow: hidden;
 }
 
+/* Toolbar */
 .arcade-toolbar {
   display: flex;
   align-items: center;
   padding: 0 8px;
-  background: #3a2c2c; /* dark red-gray */
-  border-bottom: 2px solid #ff4040; /* retro red */
+  background: var(--toolbar-background);
+  border-bottom: var(--border-style) var(--accent-color);
   height: 40px;
 }
 
@@ -208,21 +315,21 @@ body.arcade-bg {
 }
 
 .arcade-button {
-  background: #3a2c2c; /* dark red-gray */
-  border: 2px solid #cc9999; /* muted red */
-  color: #ffd1d1; /* soft red-white */
-  font-family: "IBM Plex Mono", monospace;
+  background: var(--toolbar-background);
+  border: var(--border-style) var(--secondary-foreground);
+  color: var(--primary-foreground);
+  font-family: var(--header-font);
   font-size: 12px;
   padding: 4px 12px;
   margin-right: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-ease);
 }
 
 .arcade-button:hover {
-  background: #4a3c3c; /* lighter red-gray */
-  border-color: #ffd1d1; /* soft red-white */
-  color: #ffd1d1; /* soft red-white */
+  background: var(--tertiary-background);
+  border-color: var(--primary-foreground);
+  color: var(--primary-foreground);
 }
 
 .arcade-button i {
@@ -238,7 +345,7 @@ body.arcade-bg {
 
 .arcade-button#btn-settings:hover,
 .arcade-button#btn-headphones:hover {
-  background: #ff4040; /* retro red */
+  background: var(--accent-color);
   border: none;
 }
 
@@ -248,15 +355,12 @@ body.arcade-bg {
   font-size: 16px;
 }
 
-.spacer {
-  flex-grow: 1;
-}
-
+/* Tab Bar */
 .arcade-tab-bar {
   display: flex;
   height: 35px;
-  background: #2a1c1c; /* dark red */
-  border-bottom: 2px solid #ff4040; /* retro red */
+  background: var(--primary-background);
+  border-bottom: var(--border-style) var(--accent-color);
   overflow-x: auto;
 }
 
@@ -268,32 +372,32 @@ body.arcade-bg {
 .tab {
   display: flex;
   align-items: center;
-  background: #3a2c2c; /* dark red-gray */
-  color: #cc9999; /* muted red */
+  background: var(--tab-background);
+  color: var(--secondary-foreground);
   padding: 0 10px;
   height: 100%;
   flex-shrink: 0;
   max-width: 200px;
-  border-right: 1px solid #ff4040; /* retro red */
+  border-right: 1px solid var(--accent-color);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-ease);
 }
 
 .tab.active {
-  background: #2a1c1c; /* dark red */
-  color: #ffd1d1; /* soft red-white */
-  border-top: 2px solid #ff6666; /* bright red */
+  background: var(--tab-active-background);
+  color: var(--primary-foreground);
+  border-top: var(--border-style) var(--highlight-color);
 }
 
 .tab:hover {
-  background: #ff4040; /* retro red */
+  background: var(--accent-color);
 }
 
 .tab-name {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-right: 5px;
-  font-family: "Fira Code", monospace;
+  font-family: var(--primary-font);
   font-size: 12px;
 }
 
@@ -303,7 +407,7 @@ body.arcade-bg {
   line-height: 1;
   margin-left: 2px;
   margin-right: 4px;
-  color: #ff9999; /* light red */
+  color: var(--tab-modified-indicator);
   display: none;
 }
 
@@ -314,7 +418,7 @@ body.arcade-bg {
 .tab-close {
   background: none;
   border: none;
-  color: #cc9999; /* muted red */
+  color: var(--secondary-foreground);
   font-size: 14px;
   width: 18px;
   height: 18px;
@@ -322,24 +426,25 @@ body.arcade-bg {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color var(--transition-ease);
 }
 
 .tab-close:hover {
-  color: #ff6666; /* bright red */
+  color: var(--error-color);
 }
 
 .tab.modified .tab-close {
-  color: #ff9999; /* light red */
+  color: var(--tab-modified-indicator);
   font-size: 16px;
 }
 
+/* Editor and Output */
 .editor-output-split {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   overflow: hidden;
-  background: #2a1c1c; /* dark red */
+  background: var(--primary-background);
 }
 
 #editor-container {
@@ -347,13 +452,13 @@ body.arcade-bg {
   overflow: hidden;
   min-height: 100px;
   position: relative;
-  background: #2a1c1c; /* dark red */
+  background: var(--editor-background);
 }
 
 #editor-container .monaco-editor,
 #editor-container .monaco-editor .monaco-editor-background,
 #editor-container .monaco-editor .margin {
-  background: #2a1c1c !important; /* Force Monaco Editor background */
+  background: var(--editor-background) !important;
 }
 
 #editor-container:has(.intro-message[style*="display: flex"]) .monaco-editor,
@@ -383,29 +488,29 @@ body.arcade-bg {
   height: 100%;
   justify-content: center;
   align-items: center;
-  background: #2a1c1c; /* dark red */
+  background: var(--primary-background);
   z-index: 1000;
 }
 
 .intro-content {
   text-align: center;
-  background: #3a2c2c; /* dark red-gray */
-  border: 2px solid #ff4040; /* retro red */
+  background: var(--secondary-background);
+  border: var(--border-style) var(--accent-color);
   padding: 20px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 .intro-content h1 {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--header-font);
   font-size: 24px;
-  color: #ff6666; /* bright red */
+  color: var(--highlight-color);
   margin-bottom: 10px;
 }
 
 .intro-content p {
-  font-family: "Fira Code", monospace;
+  font-family: var(--primary-font);
   font-size: 12px;
-  color: #ffd1d1; /* soft red-white */
+  color: var(--primary-foreground);
   margin-bottom: 15px;
   line-height: 1.5;
 }
@@ -417,40 +522,48 @@ body.arcade-bg {
   left: 0;
   width: 100%;
   height: 100%;
-  background: #2a1c1c; /* dark red */
+  background: var(--primary-background);
   z-index: 1000;
-  display: flex; /* Updated to flex */
+  display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
 }
 
 .preview-image {
-  display: block; /* Updated */
+  display: block;
   margin: auto;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 4px; /* Retain theme border */
+  border-radius: var(--border-radius);
+  transform: scale(1);
+  transition: transform var(--transition-ease);
+  cursor: zoom-in;
+}
+
+.preview-image.zoomed {
+  transform: scale(1.5);
+  cursor: zoom-out;
 }
 
 .preview-audio {
-  margin: auto; /* Updated */
+  margin: auto;
   max-width: 400px;
-  background: #3a2c2c; /* dark red-gray */
-  border-radius: 4px; /* Retain theme border */
+  background: var(--secondary-background);
+  border-radius: var(--border-radius);
   padding: 10px;
 }
 
 .preview-audio audio {
-  display: block; /* Updated */
+  display: block;
   margin: auto;
   width: 100%;
 }
 
 .preview-audio p {
-  font-family: "Fira Code", monospace;
+  font-family: var(--primary-font);
   font-size: 12px;
-  color: #ffd1d1; /* soft red-white */
+  color: var(--primary-foreground);
   margin-bottom: 10px;
   text-align: center;
 }
@@ -458,12 +571,12 @@ body.arcade-bg {
 .arcade-output {
   display: flex;
   flex-direction: column;
-  background: #3a2c2c; /* dark red-gray */
-  border-top: 2px solid #ff4040; /* retro red */
+  background: var(--output-background);
+  border-top: var(--border-style) var(--accent-color);
   height: 200px;
   flex-shrink: 0;
   overflow: hidden;
-  transition: height 0.2s ease;
+  transition: height var(--transition-ease);
 }
 
 .arcade-output.collapsed {
@@ -475,15 +588,15 @@ body.arcade-bg {
   justify-content: space-between;
   align-items: center;
   padding: 0 10px;
-  background: #2a1c1c; /* dark red */
-  border-bottom: 2px solid #ff4040; /* retro red */
+  background: var(--primary-background);
+  border-bottom: var(--border-style) var(--accent-color);
   height: 28px;
 }
 
 .output-header h3 {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--header-font);
   font-size: 14px;
-  color: #ffd1d1; /* soft red-white */
+  color: var(--primary-foreground);
   margin: 0;
 }
 
@@ -495,68 +608,74 @@ body.arcade-bg {
 .output-buttons button {
   background: none;
   border: none;
-  color: #cc9999; /* muted red */
+  color: var(--secondary-foreground);
   font-size: 16px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color var(--transition-ease);
 }
 
 .output-buttons button:hover {
-  color: #ffd1d1; /* soft red-white */
+  color: var(--primary-foreground);
 }
 
 #output-area {
   flex-grow: 1;
   overflow-y: auto;
   padding: 10px;
-  font-family: "Fira Code", monospace;
+  font-family: var(--primary-font);
   font-size: 12px;
-  color: #ffd1d1; /* soft red-white */
-  background: #2a1c1c; /* dark red */
+  color: var(--primary-foreground);
+  background: var(--primary-background);
 }
 
+/* Settings Dialog */
 .settings-dialog {
   display: none;
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.7);
   z-index: 1000;
   padding: 20px;
 }
 
 .settings-content {
-  background: #3a2c2c; /* dark red-gray */
-  border: 2px solid #ff4040; /* retro red */
+  background: var(--dialog-background);
+  border: var(--border-style) var(--accent-color);
   width: 300px;
   padding: 20px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 .settings-content h3 {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--header-font);
   font-size: 16px;
-  color: #ffd1d1; /* soft red-white */
+  color: var(--primary-foreground);
   margin-bottom: 10px;
 }
 
 .settings-content label {
-  font-family: "Fira Code", monospace;
+  font-family: var(--primary-font);
   font-size: 12px;
-  color: #cc9999; /* muted red */
+  color: var(--secondary-foreground);
   display: block;
   margin-bottom: 5px;
 }
 
-.settings-content select {
+.settings-content select,
+.settings-content input[type="text"],
+.settings-content input[type="number"] {
   width: 100%;
   padding: 5px;
-  background: #2a1c1c; /* dark red */
-  border: 1px solid #ff4040; /* retro red */
-  color: #ffd1d1; /* soft red-white */
-  font-family: "Fira Code", monospace;
+  background: var(--dialog-input-background);
+  border: 1px solid var(--accent-color);
+  color: var(--primary-foreground);
+  font-family: var(--primary-font);
   font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.settings-content input[type="checkbox"] {
   margin-bottom: 10px;
 }
 
@@ -565,23 +684,77 @@ body.arcade-bg {
   margin-top: 10px;
 }
 
-.music-popup {
-  display: none;
+/* Custom Dialog */
+.custom-dialog {
+  background: var(--dialog-background);
+  color: var(--primary-foreground);
+  padding: 20px;
+  border: var(--border-style) var(--accent-color);
+  max-width: 400px;
+  width: 90%;
+  font-family: var(--primary-font);
+  z-index: 1000;
+  border-radius: var(--border-radius);
+}
+.custom-dialog h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-family: var(--header-font);
+  color: var(--highlight-color);
+}
+.custom-dialog p {
+  margin: 0 0 15px;
+  font-size: 14px;
+}
+.custom-dialog input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  background: var(--dialog-input-background);
+  border: 1px solid var(--secondary-foreground);
+  color: var(--primary-foreground);
+  font-size: 14px;
+  font-family: var(--primary-font);
+}
+.custom-dialog .dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.custom-dialog button {
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--primary-font);
+}
+.custom-dialog .ok-button {
+  background: var(--accent-color);
+  color: var(--primary-foreground);
+}
+.custom-dialog .cancel-button {
+  background: var(--secondary-foreground);
+  color: var(--primary-background);
+}
+.custom-dialog .cancel-button:hover {
+  background: var(--tertiary-background);
+}
+
+/* Toast Notification */
+.toast {
   position: fixed;
-  top: 60px;
+  bottom: 20px;
   right: 20px;
-  background: #3a2c2c; /* dark red-gray */
-  border: 2px solid #ff6666; /* bright red */
+  background: var(--toast-background);
+  color: var(--primary-foreground);
   padding: 10px 20px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
+  border: var(--border-style) var(--toast-border);
   z-index: 2000;
   opacity: 0;
   transition: opacity 0.5s ease;
 }
 
-.music-popup p {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 14px;
-  color: #ff6666; /* bright red */
-  margin: 0;
+.toast.show {
+  opacity: 1;
 }
