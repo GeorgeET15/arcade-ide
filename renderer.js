@@ -10,6 +10,7 @@ const tabBar = document.getElementById("tab-bar");
 const outputArea = document.getElementById("output-area");
 const fileTreeElement = document.getElementById("file-tree");
 const openFolderButtons = document.querySelectorAll("#btn-open-folder");
+const closeFolderButton = document.getElementById("btn-close-folder");
 const newFileButton = document.getElementById("btn-new-file");
 const openFileButton = document.getElementById("btn-open-file");
 const saveFileButton = document.getElementById("btn-save-file");
@@ -34,17 +35,19 @@ const clearRecentProjectsButton = document.getElementById(
   "btn-clear-recent-projects"
 );
 
-console.log("Renderer script loaded");
+console.log("[renderer] Renderer script loaded");
 
 (async () => {
   if (!window.electronAPI) {
-    console.error("FATAL: electronAPI is undefined. Check preload.js loading.");
+    console.error(
+      "[renderer] FATAL: electronAPI is undefined. Check preload.js loading."
+    );
     outputArea.textContent =
       "Error: Electron API not available. Ensure preload.js loads correctly.";
     return;
   }
 
-  console.log("Waiting for Monaco loader...");
+  console.log("[renderer] Waiting for Monaco loader...");
   try {
     if (
       typeof require === "undefined" ||
@@ -52,7 +55,7 @@ console.log("Renderer script loaded");
     ) {
       throw new Error("Monaco loader not available");
     }
-    console.log("Monaco loader ready.");
+    console.log("[renderer] Monaco loader ready.");
 
     require.config({
       paths: {
@@ -61,16 +64,16 @@ console.log("Renderer script loaded");
     });
 
     require(["vs/editor/editor.main"], async function () {
-      console.log("Monaco editor.main loaded.");
+      console.log("[renderer] Monaco editor.main loaded.");
       try {
         const platformInfo = await window.electronAPI.getPlatform();
         pathSep = platformInfo.pathSep;
         console.log(
-          `Running on ${platformInfo.platform}, path separator: ${pathSep}`
+          `[renderer] Running on ${platformInfo.platform}, path separator: ${pathSep}`
         );
 
         if (!editorContainer) {
-          console.error("Editor container not found!");
+          console.error("[renderer] Editor container not found!");
           outputArea.textContent = "Error: Editor container not found.";
           return;
         }
@@ -84,7 +87,6 @@ console.log("Renderer script loaded");
             "editor.background": "#1f2a30",
             "editor.foreground": "#e8f1f2",
             "editorLineNumber.foreground": "#a0a4b1",
-            "editorCursor.foreground": "#00ffd1",
             "editor.selectionBackground": "#3b4cca50",
           },
         });
@@ -97,7 +99,6 @@ console.log("Renderer script loaded");
             "editor.background": "#1a1a2e",
             "editor.foreground": "#e0d7ff",
             "editorLineNumber.foreground": "#8a6bff",
-            "editorCursor.foreground": "#ff00ff",
             "editor.selectionBackground": "#6b48ff50",
           },
         });
@@ -110,7 +111,6 @@ console.log("Renderer script loaded");
             "editor.background": "#2b1b1b",
             "editor.foreground": "#ff9999",
             "editorLineNumber.foreground": "#cc6666",
-            "editorCursor.foreground": "#ff3333",
             "editor.selectionBackground": "#cc333350",
           },
         });
@@ -123,7 +123,6 @@ console.log("Renderer script loaded");
             "editor.background": "#0a1a1a",
             "editor.foreground": "#00ffcc",
             "editorLineNumber.foreground": "#00cc99",
-            "editorCursor.foreground": "#00ff00",
             "editor.selectionBackground": "#00cc9950",
           },
         });
@@ -135,7 +134,6 @@ console.log("Renderer script loaded");
             "editor.background": "#24292e",
             "editor.foreground": "#d1d5da",
             "editorLineNumber.foreground": "#6a737d",
-            "editorCursor.foreground": "#79b8ff",
             "editor.selectionBackground": "#4c566a50",
           },
         });
@@ -153,586 +151,25 @@ console.log("Renderer script loaded");
             minimap: { enabled: true },
             fontSize,
           });
-          console.log("Monaco Editor initialized.");
+          console.log("[renderer] Monaco Editor initialized.");
         } catch (monacoError) {
-          console.error("Failed to initialize Monaco Editor: " + monacoError);
+          console.error(
+            "[renderer] Failed to initialize Monaco Editor: " + monacoError
+          );
           outputArea.textContent = "Error: Failed to initialize editor.";
           return;
         }
 
-        monaco.languages.registerCompletionItemProvider("c", {
-          triggerCharacters: ["("],
-          provideCompletionItems: (model, position) => {
-            const word = model.getWordUntilPosition(position);
-            const range = {
-              startLineNumber: position.lineNumber,
-              endLineNumber: position.lineNumber,
-              startColumn: word.startColumn,
-              endColumn: word.endColumn,
-            };
+        require(["./completions/arcadeCompletion"], function (
+          arcadeCompletion
+        ) {
+          arcadeCompletion.registerArcadeCompletionProvider(monaco);
+          console.log("[renderer] Arcade completions registered.");
+        });
 
-            return {
-              suggestions: [
-                {
-                  label: "arcade_init",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    'arcade_init(${1:800}, ${2:600}, ${3:"My Game"}, ${4:0x000000})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Initialize the Arcade window.\nParameters:\n- window_width: int (e.g., 800)\n- window_height: int (e.g., 600)\n- window_title: const char*\n- bg_color: uint32_t (0xRRGGBB)\nReturns: int (0 on success, non-zero on failure)",
-                  range: range,
-                },
-                {
-                  label: "arcade_running",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_running()$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Check if the Arcade window is running.\nReturns: int (1 if running, 0 if stopped)",
-                  range: range,
-                },
-                {
-                  label: "arcade_update",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_update()$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Update the Arcade game state (processes events).\nReturns: int (1 to continue, 0 to stop)",
-                  range: range,
-                },
-                {
-                  label: "arcade_quit",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_quit()$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Close the Arcade window and free resources.",
-                  range: range,
-                },
-                {
-                  label: "arcade_set_running",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_set_running(${1|1,0|})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Set the running state of the game.\nParameters:\n- value: int (1 = running, 0 = stopped)",
-                  range: range,
-                },
-                {
-                  label: "arcade_sleep",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_sleep(${1:16})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Pause execution for specified milliseconds to control frame rate.\nParameters:\n- milliseconds: unsigned int (e.g., 16 for ~60 FPS)",
-                  range: range,
-                },
-                {
-                  label: "arcade_key_pressed",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_key_pressed(${1|a_up,a_down,a_left,a_right,a_w,a_a,a_s,a_d,a_r,a_p,a_space,a_esc|})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Check if a specific key is currently pressed.\nParameters:\n- key_val: unsigned int (e.g., a_space)\nReturns: int (2 if pressed, 0 if not)",
-                  range: range,
-                },
-                {
-                  label: "arcade_key_pressed_once",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_key_pressed_once(${1|a_up,a_down,a_left,a_right,a_w,a_a,a_s,a_d,a_r,a_p,a_space,a_esc|})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Check if a key was pressed in the current frame.\nParameters:\n- key_val: unsigned int (e.g., a_space)\nReturns: int (2 if pressed this frame, 0 otherwise)",
-                  range: range,
-                },
-                {
-                  label: "arcade_clear_keys",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_clear_keys()$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Reset all key states to unpressed.",
-                  range: range,
-                },
-                {
-                  label: "arcade_move_sprite",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_move_sprite(&${1:sprite}, ${2:0.1f}, ${3:600})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Update position of a color-based sprite with gravity and boundary checks.\nParameters:\n- sprite: ArcadeSprite*\n- gravity: float (e.g., 0.1f)\n- window_height: int",
-                  range: range,
-                },
-                {
-                  label: "arcade_move_image_sprite",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_move_image_sprite(&${1:sprite}, ${2:0.1f}, ${3:600})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Update position of an image-based sprite with gravity and boundary checks.\nParameters:\n- sprite: ArcadeImageSprite*\n- gravity: float\n- window_height: int",
-                  range: range,
-                },
-                {
-                  label: "arcade_check_collision",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_check_collision(&${1:a}, &${2:b})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Check for collision between two color-based sprites using AABB.\nParameters:\n- a: ArcadeSprite*\n- b: ArcadeSprite*\nReturns: int (1 if collision, 0 otherwise)",
-                  range: range,
-                },
-                {
-                  label: "arcade_check_image_collision",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_check_image_collision(&${1:a}, &${2:b})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Check for collision between two image-based sprites using AABB.\nParameters:\n- a: ArcadeImageSprite*\n- b: ArcadeImageSprite*\nReturns: int (1 if collision, 0 otherwise)",
-                  range: range,
-                },
-                {
-                  label: "arcade_create_image_sprite",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    'arcade_create_image_sprite(${1:100.0f}, ${2:100.0f}, ${3:50.0f}, ${4:50.0f}, ${5:"sprite.png"})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Create an image-based sprite from a file.\nParameters:\n- x: float\n- y: float\n- w: float\n- h: float\n- filename: const char*\nReturns: ArcadeImageSprite",
-                  range: range,
-                },
-                {
-                  label: "arcade_free_image_sprite",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_free_image_sprite(&${1:sprite})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Free the pixel data of an image-based sprite.\nParameters:\n- sprite: ArcadeImageSprite*",
-                  range: range,
-                },
-                {
-                  label: "arcade_create_animated_sprite",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_create_animated_sprite(${1:100.0f}, ${2:100.0f}, ${3:50.0f}, ${4:50.0f}, ${5:filenames}, ${6:3}, ${7:5})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Create an animated sprite with multiple frames.\nParameters:\n- x: float\n- y: float\n- w: float\n- h: float\n- filenames: const char**\n- frame_count: int\n- frame_interval: int\nReturns: ArcadeAnimatedSprite",
-                  range: range,
-                },
-                {
-                  label: "arcade_free_animated_sprite",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_free_animated_sprite(&${1:anim})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Free all frames of an animated sprite.\nParameters:\n- anim: ArcadeAnimatedSprite*",
-                  range: range,
-                },
-                {
-                  label: "arcade_move_animated_sprite",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_move_animated_sprite(&${1:anim}, ${2:0.1f}, ${3:600})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Update position and animation of an animated sprite.\nParameters:\n- anim: ArcadeAnimatedSprite*\n- gravity: float\n- window_height: int",
-                  range: range,
-                },
-                {
-                  label: "arcade_check_animated_collision",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_check_animated_collision(&${1:anim}, &${2:other})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Check for collision between an animated sprite and an image-based sprite.\nParameters:\n- anim: ArcadeAnimatedSprite*\n- other: ArcadeImageSprite*\nReturns: int (1 if collision, 0 otherwise)",
-                  range: range,
-                },
-                {
-                  label: "arcade_render_scene",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_render_scene(${1:sprites}, ${2:count}, ${3:types})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Render a scene with multiple sprites.\nParameters:\n- sprites: ArcadeAnySprite*\n- count: int\n- types: int* (SPRITE_COLOR or SPRITE_IMAGE)",
-                  range: range,
-                },
-                {
-                  label: "arcade_render_text",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    'arcade_render_text(${1:"Score: 10"}, ${2:10.0f}, ${3:10.0f}, ${4:0xFFFFFF})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Render text at a specified position.\nParameters:\n- text: const char*\n- x: float\n- y: float\n- color: unsigned int (0xRRGGBB)",
-                  range: range,
-                },
-                {
-                  label: "arcade_render_text_centered",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    'arcade_render_text_centered(${1:"Game Over"}, ${2:300.0f}, ${3:0xFF0000})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Render text centered horizontally.\nParameters:\n- text: const char*\n- y: float\n- color: unsigned int (0xRRGGBB)",
-                  range: range,
-                },
-                {
-                  label: "arcade_render_text_centered_blink",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    'arcade_render_text_centered_blink(${1:"Press Space"}, ${2:300.0f}, ${3:0xFFFFFF}, ${4:30})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Render centered text that blinks.\nParameters:\n- text: const char*\n- y: float\n- color: unsigned int (0xRRGGBB)\n- blink_interval: int",
-                  range: range,
-                },
-                {
-                  label: "arcade_init_group",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_init_group(&${1:group}, ${2:10})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Initialize a sprite group with a specified capacity.\nParameters:\n- group: SpriteGroup*\n- capacity: int",
-                  range: range,
-                },
-                {
-                  label: "arcade_add_sprite_to_group",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_add_sprite_to_group(&${1:group}, (ArcadeAnySprite){.${2|sprite,image_sprite|} = ${3:sprite}}, ${4|SPRITE_COLOR,SPRITE_IMAGE|})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Add a sprite to a sprite group.\nParameters:\n- group: SpriteGroup*\n- sprite: ArcadeAnySprite\n- type: int (SPRITE_COLOR or SPRITE_IMAGE)",
-                  range: range,
-                },
-                {
-                  label: "arcade_add_animated_to_group",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    "arcade_add_animated_to_group(&${1:group}, &${2:anim})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Add an animated sprite’s current frame to a group.\nParameters:\n- group: SpriteGroup*\n- anim: ArcadeAnimatedSprite*",
-                  range: range,
-                },
-                {
-                  label: "arcade_render_group",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_render_group(&${1:group})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Render all sprites in a sprite group.\nParameters:\n- group: SpriteGroup*",
-                  range: range,
-                },
-                {
-                  label: "arcade_free_group",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: "arcade_free_group(&${1:group})$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Free the memory allocated for a sprite group.\nParameters:\n- group: SpriteGroup*",
-                  range: range,
-                },
-                {
-                  label: "arcade_play_sound",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText: 'arcade_play_sound(${1:"audio/sfx.wav"})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Play a WAV audio file asynchronously.\nParameters:\n- audio_file_path: const char*\nReturns: int (0 on success, non-zero on failure)",
-                  range: range,
-                },
-                {
-                  label: "arcade_flip_image",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    'arcade_flip_image(${1:"sprite.png"}, ${2|0,1|})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Flip an image vertically (1) or horizontally (0).\nParameters:\n- input_path: const char*\n- flip_type: int\nReturns: char* (path to flipped image, or NULL)",
-                  range: range,
-                },
-                {
-                  label: "arcade_rotate_image",
-                  kind: monaco.languages.CompletionItemKind.Function,
-                  insertText:
-                    'arcade_rotate_image(${1:"sprite.png"}, ${2|0,90,180,270|})$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Rotate an image by 0, 90, 180, or 270 degrees.\nParameters:\n- input_path: const char*\n- degrees: int\nReturns: char* (path to rotated image, or NULL)",
-                  range: range,
-                },
-                {
-                  label: "ArcadeSprite",
-                  kind: monaco.languages.CompletionItemKind.Struct,
-                  insertText:
-                    "ArcadeSprite ${1:sprite} = {${2:100.0f}, ${3:100.0f}, ${4:50.0f}, ${5:50.0f}, ${6:0.0f}, ${7:0.0f}, ${8:0xFF0000}, ${9:1}};$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Color-based sprite.\nFields:\n- x: float\n- y: float\n- width: float\n- height: float\n- vy: float\n- vx: float\n- color: unsigned int (0xRRGGBB)\n- active: int",
-                  range: range,
-                },
-                {
-                  label: "ArcadeImageSprite",
-                  kind: monaco.languages.CompletionItemKind.Struct,
-                  insertText:
-                    'ArcadeImageSprite ${1:sprite} = arcade_create_image_sprite(${2:100.0f}, ${3:100.0f}, ${4:50.0f}, ${5:50.0f}, ${6:"sprite.png"});$0',
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Image-based sprite.\nFields:\n- x: float\n- y: float\n- width: float\n- height: float\n- vy: float\n- vx: float\n- pixels: uint32_t*\n- image_width: int\n- image_height: int\n- active: int",
-                  range: range,
-                },
-                {
-                  label: "ArcadeAnimatedSprite",
-                  kind: monaco.languages.CompletionItemKind.Struct,
-                  insertText:
-                    "ArcadeAnimatedSprite ${1:anim} = arcade_create_animated_sprite(${2:100.0f}, ${3:100.0f}, ${4:50.0f}, ${5:50.0f}, ${6:filenames}, ${7:3}, ${8:5});$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Animated sprite with multiple frames.\nFields:\n- frames: ArcadeImageSprite*\n- frame_count: int\n- current_frame: int\n- frame_interval: int\n- frame_counter: int",
-                  range: range,
-                },
-                {
-                  label: "ArcadeAnySprite",
-                  kind: monaco.languages.CompletionItemKind.Struct,
-                  insertText:
-                    "ArcadeAnySprite ${1:sprite} = {.$2|sprite,image_sprite| = ${3:src_sprite}};$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Union for color or image-based sprites.\nFields:\n- sprite: ArcadeSprite\n- image_sprite: ArcadeImageSprite",
-                  range: range,
-                },
-                {
-                  label: "SpriteGroup",
-                  kind: monaco.languages.CompletionItemKind.Struct,
-                  insertText:
-                    "SpriteGroup ${1:group};\narcade_init_group(&${1:group}, ${2:10});$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation:
-                    "Manages a collection of sprites.\nFields:\n- sprites: ArcadeAnySprite*\n- types: int*\n- count: int\n- capacity: int",
-                  range: range,
-                },
-                {
-                  label: "SPRITE_COLOR",
-                  kind: monaco.languages.CompletionItemKind.EnumMember,
-                  insertText: "SPRITE_COLOR$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Enum value for color-based sprite (0).",
-                  range: range,
-                },
-                {
-                  label: "SPRITE_IMAGE",
-                  kind: monaco.languages.CompletionItemKind.EnumMember,
-                  insertText: "SPRITE_IMAGE$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Enum value for image-based sprite (1).",
-                  range: range,
-                },
-                {
-                  label: "a_up",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_up$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for up arrow (0xff52).",
-                  range: range,
-                },
-                {
-                  label: "a_down",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_down$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for down arrow (0xff54).",
-                  range: range,
-                },
-                {
-                  label: "a_left",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_left$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for left arrow (0xff51).",
-                  range: range,
-                },
-                {
-                  label: "a_right",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_right$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for right arrow (0xff53).",
-                  range: range,
-                },
-                {
-                  label: "a_w",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_w$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for W key (0x0077).",
-                  range: range,
-                },
-                {
-                  label: "a_a",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_a$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for A key (0x0061).",
-                  range: range,
-                },
-                {
-                  label: "a_s",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_s$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for S key (0x0073).",
-                  range: range,
-                },
-                {
-                  label: "a_d",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_d$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for D key (0x0064).",
-                  range: range,
-                },
-                {
-                  label: "a_r",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_r$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for R key (0x0072).",
-                  range: range,
-                },
-                {
-                  label: "a_p",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_p$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for P key (0x0070).",
-                  range: range,
-                },
-                {
-                  label: "a_space",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_space$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for spacebar (0x0020).",
-                  range: range,
-                },
-                {
-                  label: "a_esc",
-                  kind: monaco.languages.CompletionItemKind.Constant,
-                  insertText: "a_esc$0",
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  documentation: "Key code for escape key (0xff1b).",
-                  range: range,
-                },
-              ],
-            };
-          },
+        require(["./completions/cCompletionProvider"], function (cCompletion) {
+          cCompletion.registerCCompletionProvider(monaco);
+          console.log("[renderer] C completions registered.");
         });
 
         const isSidebarCollapsed = await window.electronAPI.getSettings(
@@ -751,7 +188,7 @@ console.log("Renderer script loaded");
           "selectedTheme",
           "style.css"
         );
-        console.log(`Restoring theme: ${selectedTheme}`);
+        console.log(`[renderer] Restoring theme: ${selectedTheme}`);
         await applyTheme(selectedTheme);
 
         await loadRecentProjects();
@@ -797,7 +234,7 @@ console.log("Renderer script loaded");
         if (typeof window.electronAPI.onContextMenuAction === "function") {
           window.electronAPI.onContextMenuAction((action, filePath) => {
             console.log(
-              `Received context menu action: ${action} for ${filePath}`
+              `[renderer] Received context menu action: ${action} for ${filePath}`
             );
             switch (action) {
               case "rename":
@@ -813,13 +250,15 @@ console.log("Renderer script loaded");
                 handleNewFolder(filePath);
                 break;
               default:
-                console.warn(`Unknown context menu action: ${action}`);
+                console.warn(
+                  `[renderer] Unknown context menu action: ${action}`
+                );
             }
           });
-          console.log("Context menu action listener registered");
+          console.log("[renderer] Context menu action listener registered");
         } else {
           console.error(
-            "window.electronAPI.onContextMenuAction is not a function"
+            "[renderer] window.electronAPI.onContextMenuAction is not a function"
           );
           outputArea.textContent =
             "Error: Context menu actions not supported. Check preload.js.";
@@ -827,18 +266,41 @@ console.log("Renderer script loaded");
 
         attachUIEventListeners();
       } catch (error) {
-        console.error("Initialization error: " + error);
+        console.error("[renderer] Initialization error: " + error);
         outputArea.textContent = `Error: ${error.message}`;
       }
     }, (err) => {
-      console.error("Failed to load Monaco Editor: " + err);
+      console.error("[renderer] Failed to load Monaco Editor: " + err);
       outputArea.textContent = "Error: Failed to load Monaco Editor.";
     });
   } catch (error) {
-    console.error("Monaco loader error: " + error);
+    console.error("[renderer] Monaco loader error: " + error);
     outputArea.textContent = `Error loading Monaco: ${error.message}`;
   }
 })();
+
+async function closeCurrentFolder() {
+  if (!currentFolderPath) {
+    console.log("[renderer] No folder open to close");
+    return;
+  }
+  console.log(`[renderer] Closing folder: ${currentFolderPath}`);
+  try {
+    await window.electronAPI.setSettings("lastOpenFolder", null);
+    console.log("[renderer] Cleared lastOpenFolder setting");
+    currentFolderPath = null;
+    fileTreeElement.innerHTML =
+      '<li class="placeholder">Open a folder to see files</li>';
+    newFileInFolderButton.disabled = true;
+    newFolderButton.disabled = true;
+    outputArea.textContent = "Folder closed.";
+    showToast("Folder closed");
+  } catch (error) {
+    console.error(`[renderer] Error closing folder: ${error.message}`);
+    outputArea.textContent = `Error closing folder: ${error.message}`;
+    showToast("Failed to close folder");
+  }
+}
 
 function showInputDialog({ title, message, defaultInput }) {
   return new Promise((resolve) => {
@@ -912,7 +374,7 @@ function createNewTab(
   previewType = null
 ) {
   if (!monaco || !monaco.editor) {
-    console.error("Cannot create tab: Monaco editor not available.");
+    console.error("[renderer] Cannot create tab: Monaco editor not available.");
     outputArea.textContent = "Error: Editor not ready.";
     return null;
   }
@@ -929,7 +391,9 @@ function createNewTab(
     let language = "c";
     if (fileName.toLowerCase() === "makefile") language = "makefile";
     else if (!/\.(c|h)$/i.test(fileName) && !isNew) language = "plaintext";
-    console.log(`Creating model for ${fileName} with language ${language}`);
+    console.log(
+      `[renderer] Creating model for ${fileName} with language ${language}`
+    );
     model = monaco.editor.createModel(content, language, fileUri);
   } else {
     previewContainer = document.createElement("div");
@@ -973,7 +437,7 @@ function createNewTab(
 
   const closeButton = document.createElement("button");
   closeButton.className = "tab-close";
-  closeButton.innerHTML = "×";
+  closeButton.innerHTML = `<svg  xmlns="http://www.w3.org/2000/svg"  width="14"  height="14"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>`;
   closeButton.title = "Close Tab";
   closeButton.onclick = (e) => {
     e.stopPropagation();
@@ -1000,14 +464,14 @@ function createNewTab(
   if (tabInfo.isModified) setTabModified(tabId, true);
   setActiveTab(tabId);
   toggleIntroMessage();
-  console.log(`Created tab ${tabId}: ${fileName}`);
+  console.log(`[renderer] Created tab ${tabId}: ${fileName}`);
   showToast(`Opened ${fileName}`);
   return tabId;
 }
 
 function setActiveTab(tabId, setModel = true) {
   if (!editor) {
-    console.warn("setActiveTab called before editor is ready.");
+    console.warn("[renderer] setActiveTab called before editor is ready.");
     return;
   }
   if (!tabId || !openTabs.has(tabId)) {
@@ -1312,7 +776,7 @@ async function handleNewFileInFolder(targetFolder = currentFolderPath) {
       return;
     }
     const filePath = await window.electronAPI.pathJoin(targetFolder, fileName);
-    console.log(`Creating file: ${filePath}`);
+    console.log(`[renderer] Creating file: ${filePath}`);
     const writeResult = await window.electronAPI.writeFile(filePath, "");
     if (writeResult.success) {
       outputArea.textContent = `Created: ${fileName}`;
@@ -1326,7 +790,7 @@ async function handleNewFileInFolder(targetFolder = currentFolderPath) {
   } catch (error) {
     outputArea.textContent = `Error creating file: ${error.message}`;
     showToast(`Failed to create file`);
-    console.error(`Error creating file: ${error.message}`);
+    console.error(`[renderer] Error creating file: ${error.message}`);
   }
 }
 
@@ -1354,7 +818,7 @@ async function handleNewFolder(targetFolder = currentFolderPath) {
       targetFolder,
       folderName
     );
-    console.log(`Creating folder: ${folderPath}`);
+    console.log(`[renderer] Creating folder: ${folderPath}`);
     const createResult = await window.electronAPI.createFolder(folderPath);
     if (createResult.success) {
       outputArea.textContent = `Created: ${folderName}`;
@@ -1367,7 +831,7 @@ async function handleNewFolder(targetFolder = currentFolderPath) {
   } catch (error) {
     outputArea.textContent = `Error creating folder: ${error.message}`;
     showToast(`Failed to create folder`);
-    console.error(`Error creating folder: ${error.message}`);
+    console.error(`[renderer] Error creating folder: ${error.message}`);
   }
 }
 
@@ -1380,6 +844,8 @@ async function handleOpenFolder() {
   try {
     const result = await window.electronAPI.openFolder();
     if (!result.canceled && result.folderPath && result.success) {
+      await window.electronAPI.setSettings("lastOpenFolder", result.folderPath);
+      console.log(`[renderer] Set lastOpenFolder to ${result.folderPath}`);
       await loadAndDisplayFolder(result.folderPath);
       outputArea.textContent = `Opened: ${getBaseName(result.folderPath)}`;
     } else if (result.error) {
@@ -1400,56 +866,73 @@ async function loadAndDisplayFolder(folderPath) {
   currentFolderPath = folderPath;
   newFileInFolderButton.disabled = !currentFolderPath;
   newFolderButton.disabled = !currentFolderPath;
-  console.log(`Loading folder: ${folderPath}`);
+  closeFolderButton.disabled = !currentFolderPath;
+  console.log(`[renderer] Loading folder: ${folderPath}`);
   try {
     const result = await window.electronAPI.readDir(folderPath);
-    console.log(`readDir result for ${folderPath}:`, result);
+    console.log(`[renderer] readDir result for ${folderPath}:`, result);
     if (result.success && result.files) {
       fileTreeElement.innerHTML = "";
       await Promise.all(
         result.files.map((file) => addFileToTree(file, folderPath, 0))
       );
       console.log(
-        `File tree populated for ${folderPath}, HTML length: ${fileTreeElement.innerHTML.length}`
+        `[renderer] File tree populated for ${folderPath}, HTML length: ${fileTreeElement.innerHTML.length}`
       );
       await loadRecentProjects();
     } else {
       outputArea.textContent = `Error: ${result.error || "No files found"}`;
       console.error(
-        `Error loading folder ${folderPath}: ${
+        `[renderer] Error loading folder ${folderPath}: ${
           result.error || "No files found"
         }`
       );
       currentFolderPath = null;
       newFileInFolderButton.disabled = true;
       newFolderButton.disabled = true;
+      closeFolderButton.disabled = true;
+      fileTreeElement.innerHTML =
+        '<li class="placeholder">Open a folder to see files</li>';
     }
   } catch (error) {
     outputArea.textContent = `Error: ${error.message}`;
-    console.error(`Error in loadAndDisplayFolder: ${error.message}`);
+    console.error(`[renderer] Error in loadAndDisplayFolder: ${error.message}`);
     currentFolderPath = null;
     newFileInFolderButton.disabled = true;
     newFolderButton.disabled = true;
+    closeFolderButton.disabled = true;
+    fileTreeElement.innerHTML =
+      '<li class="placeholder">Open a folder to see files</li>';
   }
 }
 
 async function toggleFolder(li, folderPath, level) {
-  console.log(`Toggle clicked for folder: ${folderPath}`);
+  console.log(`[renderer] Toggle clicked for folder: ${folderPath}`);
   const isExpanded = li.classList.contains("expanded");
   li.classList.toggle("expanded");
-  console.log(`Folder ${folderPath} expanded: ${!isExpanded}`);
+  const chevron = li.querySelector(".toggle i");
+  if (chevron) {
+    chevron.className = `<svg  xmlns="http://www.w3.org/2000/svg"  width="16"  height="16"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-${
+      isExpanded ? "right" : "down"
+    }"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>`;
+  }
+  console.log(`[renderer] Folder ${folderPath} expanded: ${!isExpanded}`);
   if (!isExpanded) {
     let ul = li.querySelector("ul");
     if (!ul) {
-      console.log(`Loading subfolder: ${folderPath}`);
+      console.log(`[renderer] Loading subfolder: ${folderPath}`);
       const subResult = await window.electronAPI.readDir(folderPath);
-      console.log(`readDir subfolder result for ${folderPath}:`, subResult);
+      console.log(
+        `[renderer] readDir subfolder result for ${folderPath}:`,
+        subResult
+      );
       if (subResult.success && subResult.files) {
         console.log(
-          `Subfolder ${folderPath} contains ${subResult.files.length} items:`,
+          `[renderer] Subfolder ${folderPath} contains ${subResult.files.length} items:`,
           subResult.files.map((f) => `${f.name} (${f.isDir ? "dir" : "file"})`)
         );
         ul = document.createElement("ul");
+        ul.style.display = "block";
         li.appendChild(ul);
         await Promise.all(
           subResult.files.map((subFile) =>
@@ -1459,20 +942,33 @@ async function toggleFolder(li, folderPath, level) {
         // Force DOM reflow
         ul.getBoundingClientRect();
         console.log(
-          `Subfolder ${folderPath} loaded, <ul> has ${ul.childElementCount} children`
+          `[renderer] Subfolder ${folderPath} loaded, <ul> has ${ul.childElementCount} children`
         );
-        console.log(`<ul> content: ${ul.innerHTML.substring(0, 200)}...`);
+        console.log(
+          `[renderer] <ul> content: ${ul.innerHTML.substring(0, 200)}...`
+        );
       } else {
         outputArea.textContent = `Error loading folder: ${
           subResult.error || "No files found"
         }`;
         console.error(
-          `Error loading subfolder ${folderPath}: ${
+          `[renderer] Error loading subfolder ${folderPath}: ${
             subResult.error || "No files found"
           }`
         );
         li.classList.remove("expanded");
+        if (chevron) {
+          chevron.className =
+            "icon icon-tabler icons-tabler-outline icon-tabler-chevron-right";
+        }
       }
+    } else {
+      ul.style.display = "block";
+    }
+  } else {
+    const ul = li.querySelector("ul");
+    if (ul) {
+      ul.style.display = "none";
     }
   }
 }
@@ -1485,19 +981,21 @@ async function addFileToTree(file, parentPath, level) {
   const indent = level * 20;
   const displayName = file.name;
 
-  const iconClass = await window.electronAPI.getIconClass(
-    file.name,
-    file.isDir
-  );
+  const iconSvg = await window.electronAPI.getIconClass(file.name, file.isDir);
+  console.log(
+    `[renderer] Icon SVG for ${file.name}: ${iconSvg.substring(0, 50)}...`
+  ); // Debug SVG content
   let content = `<span class="file-content" style="padding-left: ${indent}px;">`;
   if (file.isDir) {
-    content += `<span class="toggle"><i class="fas fa-chevron-right"></i></span>`;
+    content += `<span class="toggle"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg></span>`;
   } else {
     content += `<span class="file-icon-placeholder"></span>`;
   }
-  content += `<i class="${iconClass}"></i> <span class="file-name">${displayName}</span></span>`;
+  content += `<span class="file-icon">${iconSvg}</span> <span class="file-name">${displayName}</span></span>`;
   li.innerHTML = content;
-  console.log(`Added file to tree: ${file.path}, isDir: ${file.isDir}`);
+  console.log(
+    `[renderer] Added file to tree: ${file.path}, isDir: ${file.isDir}`
+  );
 
   if (file.isDir) {
     const toggle = li.querySelector(".toggle");
@@ -1510,20 +1008,22 @@ async function addFileToTree(file, parentPath, level) {
   li.addEventListener("click", async (e) => {
     e.stopPropagation();
     if (!file.isDir) {
-      console.log(`File clicked: ${file.path}`);
+      console.log(`[renderer] File clicked: ${file.path}`);
       const result = await window.electronAPI.readFile(file.path);
       if (result.success) {
         openOrFocusTab(file.path, result.content);
       } else {
         outputArea.textContent = `Error: ${result.error}`;
-        console.error(`Error reading file ${file.path}: ${result.error}`);
+        console.error(
+          `[renderer] Error reading file ${file.path}: ${result.error}`
+        );
       }
     }
   });
 
   li.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    console.log(`Context menu triggered for: ${file.path}`);
+    console.log(`[renderer] Context menu triggered for: ${file.path}`);
     window.electronAPI.showContextMenu(file.path, file.isDir);
   });
 
@@ -1582,7 +1082,7 @@ async function promptRename(filePath) {
   } catch (error) {
     outputArea.textContent = `Error renaming file: ${error.message}`;
     showToast(`Failed to rename ${oldName}`);
-    console.error(`Error renaming file: ${error.message}`);
+    console.error(`[renderer] Error renaming file: ${error.message}`);
   }
 }
 
@@ -1607,7 +1107,7 @@ async function confirmDelete(filePath) {
   } catch (error) {
     outputArea.textContent = `Error: ${error.message}`;
     showToast(`Failed to delete ${fileName}`);
-    console.error(`Error deleting file: ${error.message}`);
+    console.error(`[renderer] Error deleting file: ${error.message}`);
   }
 }
 
@@ -1620,7 +1120,9 @@ async function clearRecentProjects() {
   } catch (error) {
     outputArea.textContent = `Error: ${error.message}`;
     showToast("Failed to clear recent projects");
-    console.error(`Error clearing recent projects: ${error.message}`);
+    console.error(
+      `[renderer] Error clearing recent projects: ${error.message}`
+    );
   }
 }
 
@@ -1651,11 +1153,13 @@ function toggleSidebar(force = false) {
   const isCollapsed = sidebar.classList.contains("collapsed");
   if (force || !isCollapsed) {
     sidebar.classList.add("collapsed");
-    toggleSidebarButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    toggleSidebarButton.innerHTML =
+      '<svg  xmlns="http://www.w3.org/2000/svg"  width="32"  height="32"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-left-expand"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M9 4v16" /><path d="M14 10l2 2l-2 2" /></svg>';
     window.electronAPI.setSettings("sidebarCollapsed", true);
   } else {
     sidebar.classList.remove("collapsed");
-    toggleSidebarButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    toggleSidebarButton.innerHTML =
+      '<svg  xmlns="http://www.w3.org/2000/svg"  width="32"  height="32"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-left-collapse"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M9 4v16" /><path d="M15 10l-2 2l2 2" /></svg>';
     window.electronAPI.setSettings("sidebarCollapsed", false);
   }
 }
@@ -1666,21 +1170,25 @@ function toggleOutput(force = false) {
   if (force || !isCollapsed) {
     outputContainer.classList.add("collapsed");
     editorContainer.style.height = "100%";
-    toggleOutputButton.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    toggleOutputButton.innerHTML =
+      '<svg  xmlns="http://www.w3.org/2000/svg"  width="20"  height="20"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 15l6 -6l6 6" /></svg>';
     window.electronAPI.setSettings("outputCollapsed", true);
   } else {
     outputContainer.classList.remove("collapsed");
     editorContainer.style.height = "60%";
-    toggleOutputButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+    toggleOutputButton.innerHTML =
+      '<svg  xmlns="http://www.w3.org/2000/svg"  width="20"  height="20"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-down"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>';
     window.electronAPI.setSettings("outputCollapsed", false);
   }
 }
 
 async function applyTheme(themePath) {
-  console.log(`Applying theme: ${themePath}`);
+  console.log(`[renderer] Applying theme: ${themePath}`);
   const themeStylesheet = document.getElementById("theme-stylesheet");
   if (!themeStylesheet) {
-    console.error("Theme stylesheet element (#theme-stylesheet) not found");
+    console.error(
+      "[renderer] Theme stylesheet element (#theme-stylesheet) not found"
+    );
     outputArea.textContent = "Error: Theme stylesheet not found.";
     return;
   }
@@ -1699,26 +1207,28 @@ async function applyTheme(themePath) {
   const monacoTheme = themeMap[themePath] || "charcoal-teal";
 
   if (!themePath.endsWith(".css")) {
-    console.error(`Invalid theme path: ${themePath}`);
+    console.error(`[renderer] Invalid theme path: ${themePath}`);
     outputArea.textContent = "Error: Invalid theme path.";
     return;
   }
   if (themeStylesheet.href !== themePath) {
     themeStylesheet.href = themePath;
-    console.log(`Theme stylesheet updated to: ${themeStylesheet.href}`);
+    console.log(
+      `[renderer] Theme stylesheet updated to: ${themeStylesheet.href}`
+    );
     themeStylesheet.onerror = () => {
-      console.error(`Failed to load theme: ${themePath}`);
+      console.error(`[renderer] Failed to load theme: ${themePath}`);
       outputArea.textContent = `Error: Failed to load theme ${themePath}`;
     };
   }
 
   await window.electronAPI.setSettings("selectedTheme", themePath);
-  console.log(`Theme saved: ${themePath}`);
+  console.log(`[renderer] Theme saved: ${themePath}`);
 
   // Apply Monaco editor theme
   if (editor) {
     monaco.editor.setTheme(monacoTheme);
-    console.log(`Monaco editor theme set to: ${monacoTheme}`);
+    console.log(`[renderer] Monaco editor theme set to: ${monacoTheme}`);
   }
 }
 
@@ -1730,6 +1240,7 @@ function attachUIEventListeners() {
   openFolderButtons.forEach((btn) =>
     btn.addEventListener("click", handleOpenFolder)
   );
+  closeFolderButton.addEventListener("click", closeCurrentFolder);
   newFileButton.addEventListener("click", () => createNewTab());
   openFileButton.addEventListener("click", handleOpenFile);
   saveFileButton.addEventListener("click", () => handleSaveFile());
@@ -1761,7 +1272,9 @@ function attachUIEventListeners() {
       "style.css"
     );
     themeSelector.value = currentTheme;
-    console.log(`Settings dialog opened, current theme: ${currentTheme}`);
+    console.log(
+      `[renderer] Settings dialog opened, current theme: ${currentTheme}`
+    );
     buildToolPathInput.value =
       (await window.electronAPI.getSettings("buildToolPath", "")) || "";
     autoSaveCheckbox.checked = await window.electronAPI.getSettings(
@@ -1785,35 +1298,61 @@ function attachUIEventListeners() {
   });
   themeSelector.addEventListener("change", async () => {
     const newTheme = themeSelector.value;
-    console.log(`Theme selector changed to: ${newTheme}`);
+    console.log(`[renderer] Theme selector changed to: ${newTheme}`);
     await applyTheme(newTheme);
     showToast(
       `Applied theme: ${
         newTheme.startsWith("themes/")
-          ? newTheme.split("/").pop().replace(".css", "").replace("vs-", "VS ")
-          : newTheme.replace(".css", "")
+          ? newTheme.split("/").pop().replace(".css", "")
+          : "Charcoal Teal"
       }`
     );
   });
-  closeSettingsButton.addEventListener("click", async () => {
-    settingsDialog.style.display = "none";
+
+  buildToolPathInput.addEventListener("change", async () => {
     await window.electronAPI.setSettings(
       "buildToolPath",
       buildToolPathInput.value
     );
+    console.log(
+      `[renderer] Build tool path updated to: ${buildToolPathInput.value}`
+    );
+  });
+
+  autoSaveCheckbox.addEventListener("change", async () => {
     await window.electronAPI.setSettings("autoSave", autoSaveCheckbox.checked);
-    const fontSize = parseInt(fontSizeInput.value);
-    if (fontSize >= 8 && fontSize <= 24) {
-      await window.electronAPI.setSettings("fontSize", fontSize);
+    console.log(`[renderer] Auto-save set to: ${autoSaveCheckbox.checked}`);
+  });
+
+  fontSizeInput.addEventListener("change", async () => {
+    const fontSize = parseInt(fontSizeInput.value) || 12;
+    await window.electronAPI.setSettings("fontSize", fontSize);
+    if (editor) {
       editor.updateOptions({ fontSize });
     }
-    const fileExtensions = fileExtensionsInput.value
+    console.log(`[renderer] Font size updated to: ${fontSize}`);
+  });
+
+  fileExtensionsInput.addEventListener("change", async () => {
+    const extensions = fileExtensionsInput.value
       .split(",")
       .map((ext) => ext.trim())
       .filter((ext) => ext);
-    await window.electronAPI.setSettings("fileExtensions", fileExtensions);
-    await window.electronAPI.setSettings("logLevel", logLevelSelector.value);
-    if (currentFolderPath) await loadAndDisplayFolder(currentFolderPath);
+    await window.electronAPI.setSettings("fileExtensions", extensions);
+    console.log(
+      `[renderer] File extensions updated to: ${extensions.join(", ")}`
+    );
   });
+
+  logLevelSelector.addEventListener("change", async () => {
+    await window.electronAPI.setSettings("logLevel", logLevelSelector.value);
+    console.log(`[renderer] Log level updated to: ${logLevelSelector.value}`);
+  });
+
+  closeSettingsButton.addEventListener("click", () => {
+    settingsDialog.style.display = "none";
+    console.log("[renderer] Settings dialog closed");
+  });
+
   clearRecentProjectsButton.addEventListener("click", clearRecentProjects);
 }

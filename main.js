@@ -24,26 +24,26 @@ const configPath = path.join(app.getPath("userData"), "arcade-ide-config.json");
 let config = { windowBounds: { width: 1100, height: 750 } };
 
 async function loadConfig() {
-  console.log(`Loading config from: ${configPath}`);
+  console.log(`[main] Loading config from: ${configPath}`);
   try {
     const data = await fs.readFile(configPath, "utf-8");
     config = JSON.parse(data);
-    console.log("Config loaded:", config);
+    console.log("[main] Config loaded:", config);
   } catch (error) {
     if (error.code !== "ENOENT") {
-      console.error("Error loading config:", error);
+      console.error("[main] Error loading config:", error);
     }
-    console.log("Using default config");
+    console.log("[main] Using default config");
   }
 }
 
 async function saveConfig() {
-  console.log(`Saving config to: ${configPath}`);
+  console.log(`[main] Saving config to: ${configPath}`);
   try {
     await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
-    console.log("Config saved");
+    console.log("[main] Config saved");
   } catch (error) {
-    console.error("Error saving config:", error);
+    console.error("[main] Error saving config:", error);
   }
 }
 
@@ -52,10 +52,10 @@ let mainWindow;
 async function fileExists(filePath) {
   try {
     await fs.access(filePath, fs.constants.F_OK);
-    console.log(`File exists: ${filePath}`);
+    console.log(`[main] File exists: ${filePath}`);
     return true;
   } catch (e) {
-    console.warn(`File does not exist: ${filePath}`);
+    console.warn(`[main] File does not exist: ${filePath}`);
     return false;
   }
 }
@@ -68,10 +68,10 @@ async function checkBuildTools() {
   try {
     await execPromise("gcc --version");
     await execPromise(`${buildTool} --version`);
-    console.log("Build tools validated successfully");
+    console.log("[main] Build tools validated successfully");
     return true;
   } catch (error) {
-    console.error("Build tools validation failed:", error);
+    console.error("[main] Build tools validation failed:", error);
     dialog.showErrorBox(
       "Build Tools Missing",
       "Please install gcc and " +
@@ -83,54 +83,56 @@ async function checkBuildTools() {
 }
 
 function registerFileProtocol() {
-  console.log("Registering file protocol handler...");
+  console.log("[main] Registering file protocol handler...");
   protocol.registerFileProtocol("file", (request, callback) => {
     const url = new URL(request.url);
     const pathname = decodeURIComponent(url.pathname);
     const resolvedPath = path.join(__dirname, pathname);
-    console.log(`File protocol request: ${request.url} -> ${resolvedPath}`);
+    console.log(
+      `[main] File protocol request: ${request.url} -> ${resolvedPath}`
+    );
     callback({ path: resolvedPath });
   });
 
   protocol.registerFileProtocol("electron", (request, callback) => {
-    console.error(`Attempted to load electron: URL: ${request.url}`);
+    console.error(`[main] Attempted to load electron: URL: ${request.url}`);
     const url = new URL(request.url);
     const pathname = decodeURIComponent(url.pathname);
     const resolvedPath = path.join(__dirname, pathname);
-    console.log(`Redirecting electron: to file: ${resolvedPath}`);
+    console.log(`[main] Redirecting electron: to file: ${resolvedPath}`);
     callback({ path: resolvedPath });
   });
 }
 
 async function createWindow() {
-  console.log("Creating window...");
+  console.log("[main] Creating window...");
   await loadConfig();
   const savedBounds = config.windowBounds || { width: 1100, height: 750 };
-  console.log("Retrieved windowBounds from config:", savedBounds);
+  console.log("[main] Retrieved windowBounds from config:", savedBounds);
   const preloadPath = path.join(__dirname, "preload.js");
-  console.log(`Attempting to load preload script from: ${preloadPath}`);
+  console.log(`[main] Attempting to load preload script from: ${preloadPath}`);
   const preloadExists = await fileExists(preloadPath);
   if (!preloadExists) {
-    console.error(`Preload script not found at: ${preloadPath}`);
+    console.error(`[main] Preload script not found at: ${preloadPath}`);
     dialog.showErrorBox("Error", `Preload script not found at: ${preloadPath}`);
     app.quit();
     return;
   }
 
   const indexPath = path.join(__dirname, "index.html");
-  console.log(`Attempting to load index.html from: ${indexPath}`);
+  console.log(`[main] Attempting to load index.html from: ${indexPath}`);
   if (!(await fileExists(indexPath))) {
-    console.error(`index.html not found at: ${indexPath}`);
+    console.error(`[main] index.html not found at: ${indexPath}`);
     dialog.showErrorBox("Error", `index.html not found at: ${indexPath}`);
     app.quit();
     return;
   }
 
   const iconPath = path.join(__dirname, "icon.png");
-  console.log(`Attempting to load icon from: ${iconPath}`);
+  console.log(`[main] Attempting to load icon from: ${iconPath}`);
   if (!(await fileExists(iconPath))) {
     console.warn(
-      `Icon not found at: ${iconPath}, proceeding without custom icon`
+      `[main] Icon not found at: ${iconPath}, proceeding without custom icon`
     );
   }
 
@@ -150,13 +152,13 @@ async function createWindow() {
 
     mainWindow.setMenu(null);
 
-    console.log(`Loading index.html from: ${indexPath}`);
+    console.log(`[main] Loading index.html from: ${indexPath}`);
     try {
       await mainWindow.loadFile(indexPath);
-      console.log("index.html loaded successfully");
+      console.log("[main] index.html loaded successfully");
       mainWindow.webContents.openDevTools();
     } catch (loadError) {
-      console.error(`Failed to load index.html: ${loadError.message}`);
+      console.error(`[main] Failed to load index.html: ${loadError.message}`);
       dialog.showErrorBox(
         "Error",
         `Failed to load index.html: ${loadError.message}`
@@ -165,7 +167,7 @@ async function createWindow() {
       return;
     }
   } catch (error) {
-    console.error(`Error in createWindow: ${error.message}`);
+    console.error(`[main] Error in createWindow: ${error.message}`);
     console.error(error.stack);
     dialog.showErrorBox("Window Creation Error", error.message);
     app.quit();
@@ -183,14 +185,14 @@ async function createWindow() {
 
 function saveBounds() {
   if (mainWindow && !mainWindow.isMinimized() && !mainWindow.isDestroyed()) {
-    console.log("Saving windowBounds to config");
+    console.log("[main] Saving windowBounds to config");
     config.windowBounds = mainWindow.getBounds();
     saveConfig();
   }
 }
 
 app.whenReady().then(() => {
-  console.log("App is ready");
+  console.log("[main] App is ready");
   try {
     registerFileProtocol();
     createWindow();
@@ -198,7 +200,7 @@ app.whenReady().then(() => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
   } catch (error) {
-    console.error("Error during app initialization:", error);
+    console.error("[main] Error during app initialization:", error);
     console.error(error.stack);
     dialog.showErrorBox("Initialization Error", error.message);
     app.quit();
@@ -206,26 +208,34 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  console.log("All windows closed");
-  delete config.lastOpenFolder;
-  saveConfig();
+  console.log("[main] All windows closed");
   if (process.platform !== "darwin") app.quit();
 });
 
 // IPC handlers
 ipcMain.handle("settings:get", (event, key, defaultValue) => {
-  console.log(`IPC settings:get called with key: ${key}`);
-  return config[key] !== undefined ? config[key] : defaultValue;
+  console.log(`[main] IPC settings:get called with key: ${key}`);
+  const value = config[key] !== undefined ? config[key] : defaultValue;
+  console.log(`[main] settings:get(${key}) ->`, value);
+  return value;
 });
 
 ipcMain.handle("settings:set", (event, key, value) => {
-  console.log(`IPC settings:set called with key: ${key}`);
-  config[key] = value;
+  console.log(
+    `[main] IPC settings:set called with key: ${key}, value: ${value}`
+  );
+  if (value === null && key in config) {
+    delete config[key];
+    console.log(`[main] settings:set deleted key: ${key}`);
+  } else {
+    config[key] = value;
+    console.log(`[main] settings:set updated key: ${key} to ${value}`);
+  }
   saveConfig();
 });
 
 ipcMain.handle("platform:get", () => {
-  console.log("IPC platform:get called");
+  console.log("[main] IPC platform:get called");
   return {
     platform: process.platform,
     pathSep: path.sep,
@@ -233,88 +243,39 @@ ipcMain.handle("platform:get", () => {
 });
 
 ipcMain.handle("path:join", async (event, ...args) => {
-  console.log(`IPC path:join called with args: ${args}`);
+  console.log(`[main] IPC path:join called with args: ${args}`);
   try {
     const joinedPath = path.join(...args);
-    console.log(`Joined path: ${joinedPath}`);
+    console.log(`[main] Joined path: ${joinedPath}`);
     return joinedPath;
   } catch (error) {
-    console.error(`Error joining paths: ${error.message}`);
+    console.error(`[main] Error joining paths: ${error.message}`);
     throw error;
   }
 });
 
-ipcMain.handle("dialog:openFile", async () => {
-  console.log("IPC dialog:openFile called");
-  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openFile"],
-    filters: [
-      { name: "C Files", extensions: ["c", "h"] },
-      { name: "All Files", extensions: ["*"] },
-    ],
-  });
-  if (canceled || filePaths.length === 0) {
-    return { canceled: true };
-  }
-  const filePath = filePaths[0];
-  try {
-    const content = await fs.readFile(filePath, "utf-8");
-    return { canceled: false, filePath, content, success: true };
-  } catch (error) {
-    console.error("Failed to read file via dialog:", error);
-    return { canceled: true, error: error.message };
-  }
-});
-
-ipcMain.handle("fs:saveFile", async (event, filePathToSave, content) => {
-  console.log(`IPC fs:saveFile called with filePath: ${filePathToSave}`);
-  let savePath = filePathToSave;
-
-  if (!savePath) {
-    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-      title: "Save C File As",
-      defaultPath: config.lastOpenFolder || app.getPath("documents"),
-      filters: [
-        { name: "C Files", extensions: ["c"] },
-        { name: "All Files", extensions: ["*"] },
-      ],
-    });
-    if (canceled || !filePath) {
-      return { canceled: true };
-    }
-    savePath = filePath;
-  }
-
-  try {
-    await fs.writeFile(savePath, content, "utf-8");
-    return { canceled: false, filePath: savePath, success: true };
-  } catch (error) {
-    console.error("Failed to save file:", error);
-    return { canceled: true, error: error.message };
-  }
-});
-
 ipcMain.handle("dialog:openFolder", async () => {
-  console.log("IPC dialog:openFolder called");
+  console.log("[main] IPC dialog:openFolder called");
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     properties: ["openDirectory"],
     defaultPath: config.lastOpenFolder,
   });
   if (canceled || filePaths.length === 0) {
+    console.log("[main] dialog:openFolder canceled");
     return { canceled: true };
   }
   const folderPath = filePaths[0];
-  config.lastOpenFolder = folderPath;
   config.recentFolders = config.recentFolders || [];
   config.recentFolders = [
     ...new Set([folderPath, ...config.recentFolders]),
   ].slice(0, 5);
   saveConfig();
+  console.log(`[main] dialog:openFolder returning folderPath: ${folderPath}`);
   return { canceled: false, folderPath, success: true };
 });
 
 ipcMain.handle("fs:readDir", async (event, folderPath) => {
-  console.log(`IPC fs:readDir called with folderPath: ${folderPath}`);
+  console.log(`[main] IPC fs:readDir called with folderPath: ${folderPath}`);
   try {
     const entries = await fs.readdir(folderPath, { withFileTypes: true });
     const allowedExtensions = config.fileExtensions || [
@@ -328,13 +289,13 @@ ipcMain.handle("fs:readDir", async (event, folderPath) => {
       .map((entry) => ({
         name: entry.name,
         isDir: entry.isDirectory(),
-        path: path.join(folderPath, entry.name),
+        path: path.join(folderPath, entry.name).replace(/\\/g, "/"),
       }))
       .filter(
         (f) =>
           f.isDir ||
           allowedExtensions.includes(
-            path.extname(f.name).toLowerCase().slice(1)
+            path.extname(f.name).toLowerCase().slice(1) || f.name.toLowerCase()
           )
       )
       .filter((f) => !f.name.startsWith("."))
@@ -343,62 +304,100 @@ ipcMain.handle("fs:readDir", async (event, folderPath) => {
         return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       });
     console.log(
-      `readDir returning ${files.length} files for ${folderPath}`,
+      `[main] readDir returning ${files.length} files for ${folderPath}`,
       files
     );
     return { success: true, files };
   } catch (error) {
-    console.error(`Error reading directory ${folderPath}:`, error);
+    console.error(`[main] Error reading directory ${folderPath}:`, error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle("fs:readFile", async (event, filePath) => {
-  console.log(`IPC fs:readFile called with filePath: ${filePath}`);
+  console.log(`[main] IPC fs:readFile called with filePath: ${filePath}`);
   try {
     const content = await fs.readFile(filePath, "utf-8");
     return { success: true, content };
   } catch (error) {
-    console.error(`Error reading file ${filePath}:`, error);
+    console.error(`[main] Error reading file ${filePath}:`, error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle("fs:writeFile", async (event, filePath, content) => {
-  console.log(`IPC fs:writeFile called with filePath: ${filePath}`);
+  console.log(`[main] IPC fs:writeFile called with filePath: ${filePath}`);
   try {
     await fs.writeFile(filePath, content, "utf-8");
     return { success: true };
   } catch (error) {
-    console.error(`Error writing file ${filePath}:`, error);
+    console.error(`[main] Error writing file ${filePath}:`, error);
     return { success: false, error: error.message };
   }
 });
 
+ipcMain.handle("fs:saveFile", async (event, filePath, content) => {
+  console.log(`[main] IPC fs:saveFile called with filePath: ${filePath}`);
+  try {
+    if (!filePath) {
+      // Show save dialog for new files
+      const { canceled, filePath: selectedPath } = await dialog.showSaveDialog(
+        mainWindow,
+        {
+          defaultPath: "untitled.c",
+          filters: [
+            { name: "C Files", extensions: ["c"] },
+            { name: "Header Files", extensions: ["h"] },
+            { name: "Makefile", extensions: ["makefile"] },
+            { name: "All Files", extensions: ["*"] },
+          ],
+        }
+      );
+
+      if (canceled || !selectedPath) {
+        console.log("[main] fs:saveFile dialog canceled");
+        return { canceled: true };
+      }
+
+      filePath = selectedPath;
+    }
+
+    // Write content to the file
+    await fs.writeFile(filePath, content, "utf-8");
+    console.log(`[main] File saved successfully: ${filePath}`);
+    return { success: true, filePath, canceled: false };
+  } catch (error) {
+    console.error(`[main] Error saving file ${filePath}:`, error.message);
+    return { success: false, error: error.message, canceled: false };
+  }
+});
+
 ipcMain.handle("fs:createFolder", async (event, folderPath) => {
-  console.log(`IPC fs:createFolder called with folderPath: ${folderPath}`);
+  console.log(
+    `[main] IPC fs:createFolder called with folderPath: ${folderPath}`
+  );
   try {
     await fs.mkdir(folderPath, { recursive: true });
     return { success: true };
   } catch (error) {
-    console.error(`Error creating folder ${folderPath}:`, error);
+    console.error(`[main] Error creating folder ${folderPath}:`, error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle("fs:renameFile", async (event, oldPath, newPath) => {
-  console.log(`IPC fs:renameFile called from ${oldPath} to ${newPath}`);
+  console.log(`[main] IPC fs:renameFile called from ${oldPath} to ${newPath}`);
   try {
     await fs.rename(oldPath, newPath);
     return { success: true };
   } catch (error) {
-    console.error(`Error renaming file: ${error.message}`);
+    console.error(`[main] Error renaming file: ${error.message}`);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle("fs:deleteFile", async (event, filePath) => {
-  console.log(`IPC fs:deleteFile called for ${filePath}`);
+  console.log(`[main] IPC fs:deleteFile called for ${filePath}`);
   try {
     const stats = await fs.stat(filePath);
     if (stats.isDirectory()) {
@@ -408,13 +407,15 @@ ipcMain.handle("fs:deleteFile", async (event, filePath) => {
     }
     return { success: true };
   } catch (error) {
-    console.error(`Error deleting file: ${error.message}`);
+    console.error(`[main] Error deleting file: ${error.message}`);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
-  console.log(`IPC code:runOrBuild called with filePath: ${filePathToRun}`);
+  console.log(
+    `[main] IPC code:runOrBuild called with filePath: ${filePathToRun}`
+  );
   if (!filePathToRun) {
     return {
       success: false,
@@ -423,7 +424,7 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
   }
 
   try {
-    console.log(`Ensuring file is saved: ${filePathToRun}`);
+    console.log(`[main] Ensuring file is saved: ${filePathToRun}`);
     await fs.writeFile(filePathToRun, codeToRun, "utf-8");
 
     const dir = path.dirname(filePathToRun);
@@ -442,9 +443,9 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
       "stb_image_resize2.h",
     ].map((file) => path.join(libDir, file));
 
-    console.log(`Checking arcade library files in: ${libDir}`);
+    console.log(`[main] Checking arcade library files in: ${libDir}`);
     if (!(await fileExists(arcadeSource))) {
-      console.error(`Arcade source not found at: ${arcadeSource}`);
+      console.error(`[main] Arcade source not found at: ${arcadeSource}`);
       dialog.showErrorBox(
         "Build Error",
         `arcade.c not found at ${arcadeSource}. Ensure the lib directory contains arcade.c.`
@@ -455,7 +456,7 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
       };
     }
     if (!(await fileExists(arcadeHeader))) {
-      console.error(`Arcade header not found at: ${arcadeHeader}`);
+      console.error(`[main] Arcade header not found at: ${arcadeHeader}`);
       dialog.showErrorBox(
         "Build Error",
         `arcade.h not found at ${arcadeHeader}. Ensure the lib directory contains arcade.h.`
@@ -467,7 +468,7 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
     }
     for (const header of stbHeaders) {
       if (!(await fileExists(header))) {
-        console.error(`STB header not found at: ${header}`);
+        console.error(`[main] STB header not found at: ${header}`);
         dialog.showErrorBox(
           "Build Error",
           `STB header (${path.basename(
@@ -524,8 +525,8 @@ all:
 clean:
 	rm -f "$(TARGET)" *.o
 `;
-      console.log(`Writing Makefile to: ${makefilePath}`);
-      console.log("Makefile content:\n", makefileContent);
+      console.log(`[main] Writing Makefile to: ${makefilePath}`);
+      console.log("[main] Makefile content:\n", makefileContent);
       await fs.writeFile(makefilePath, makefileContent, "utf-8");
     }
 
@@ -534,7 +535,7 @@ clean:
       (process.platform === "win32" ? "mingw32-make" : "make");
     const env = { ...process.env, TARGET: gameName };
     console.log(
-      `Running Makefile: ${makeCommand} in ${dir} with TARGET=${gameName}`
+      `[main] Running Makefile: ${makeCommand} in ${dir} with TARGET=${gameName}`
     );
     buildOutput = `> ${makeCommand}\n`;
     let buildSuccess = false;
@@ -549,7 +550,7 @@ clean:
         !stderr.toLowerCase().includes("error:") &&
         !stdout.toLowerCase().includes("error:");
     } catch (makeError) {
-      console.error(`Make execution error: ${makeError}`);
+      console.error(`[main] Make execution error: ${makeError}`);
       buildOutput += `Build Failed:\n${
         makeError.stderr || makeError.stdout || makeError.message
       }`;
@@ -557,19 +558,19 @@ clean:
     }
 
     if (!buildSuccess) {
-      console.error("Build failed, output:\n", buildOutput);
+      console.error("[main] Build failed, output:\n", buildOutput);
       return { success: false, output: buildOutput };
     }
 
-    console.log(`Checking for executable at: ${executablePath}`);
+    console.log(`[main] Checking for executable at: ${executablePath}`);
     if (!(await fileExists(executablePath))) {
       buildOutput += `\nBuild successful, but executable (${executableName}) not found at ${executablePath}. Cannot play.`;
       try {
         const files = await fs.readdir(dir);
-        console.log(`Directory contents: ${files.join(", ")}`);
+        console.log(`[main] Directory contents: ${files.join(", ")}`);
         buildOutput += `\nDirectory contents: ${files.join(", ")}`;
       } catch (dirError) {
-        console.error(`Error reading directory: ${dirError}`);
+        console.error(`[main] Error reading directory: ${dirError}`);
         buildOutput += `\nError reading directory: ${dirError.message}`;
       }
       return { success: true, output: buildOutput };
@@ -579,7 +580,7 @@ clean:
       process.platform === "win32"
         ? `"${executablePath}"`
         : `./"${executableName}"`;
-    console.log(`Playing: ${runCommand} in ${dir}`);
+    console.log(`[main] Playing: ${runCommand} in ${dir}`);
     let runOutput = `\n--- Playing: ${runCommand} ---\nNote: Arcade game window should appear.\n`;
     try {
       const { stdout: runStdout, stderr: runStderr } = await execPromise(
@@ -595,7 +596,7 @@ clean:
           `${buildOutput}\nExecution finished with no output.`,
       };
     } catch (runError) {
-      console.error(`Runtime exec error: ${runError}`);
+      console.error(`[main] Runtime exec error: ${runError}`);
       runOutput += `--- Runtime Error ---\n`;
       if (runError.stderr) runOutput += runError.stderr + "\n";
       if (runError.stdout)
@@ -607,13 +608,15 @@ clean:
       return { success: false, output: buildOutput + runOutput };
     }
   } catch (error) {
-    console.error("Error during build/play process:", error);
+    console.error("[main] Error during build/play process:", error);
     return { success: false, output: `Error: ${error.message}` };
   }
 });
 
 ipcMain.handle("project:newArcade", async (event, folderPath) => {
-  console.log(`IPC project:newArcade called with folderPath: ${folderPath}`);
+  console.log(
+    `[main] IPC project:newArcade called with folderPath: ${folderPath}`
+  );
   try {
     await fs.mkdir(folderPath, { recursive: true });
 
@@ -662,38 +665,43 @@ clean:
 
     return { success: true, folderPath };
   } catch (error) {
-    console.error("Error creating Arcade project:", error);
+    console.error("[main] Error creating Arcade project:", error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle("project:newArcadeProject", async (event, folderPath) => {
   console.log(
-    `IPC project:newArcadeProject called with folderPath: ${folderPath}`
+    `[main] IPC project:newArcadeProject called with folderPath: ${folderPath}`
   );
   return ipcMain.handle("project:newArcade")(event, folderPath);
 });
 
 ipcMain.handle("icon:getClass", (event, fileName, isDir) => {
-  console.log(`IPC icon:getClass called for: ${fileName}, isDir: ${isDir}`);
+  console.log(
+    `[main] IPC icon:getClass called for: ${fileName}, isDir: ${isDir}`
+  );
   const ext = isDir ? "folder" : path.extname(fileName).toLowerCase().slice(1);
+  console.log(`[main] Determined extension: ${ext}`); // Debug extension
   const iconMap = {
-    folder: "fas fa-folder",
-    c: "fas fa-file-code",
-    h: "fas fa-file-code",
-    png: "fas fa-file-image",
-    wav: "fas fa-file-audio",
-    txt: "fas fa-file-alt",
-    makefile: "fas fa-file",
+    folder: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-folder"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 3a1 1 0 0 1 .608 .206l.1 .087l2.706 2.707h6.586a3 3 0 0 1 2.995 2.824l.005 .176v8a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-11a3 3 0 0 1 2.824 -2.995l.176 -.005h4z" /></svg>`,
+    c: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-letter-c-small"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 10a2 2 0 1 0 -4 0v4a2 2 0 1 0 4 0" /></svg>`,
+    h: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-letter-c-small"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 10a2 2 0 1 0 -4 0v4a2 2 0 1 0 4 0" /></svg>`,
+    png: `<svg  xmlns="http://www.w3.org/2000/svg"  width="16"  height="16"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-file-type-png"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" /><path d="M20 15h-1a2 2 0 0 0 -2 2v2a2 2 0 0 0 2 2h1v-3" /><path d="M5 18h1.5a1.5 1.5 0 0 0 0 -3h-1.5v6" /><path d="M11 21v-6l3 6v-6" /></svg>
+  <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2v-1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zm-3.76 8.132q.114.23.14.492h-.776a.8.8 0 0 0-.097-.249.7.7 0 0 0-.17-.19.7.7 0 0 0-.237-.126 1 1 0 0 0-.299-.044q-.427 0-.665.302-.234.301-.234.85v.498q0 .351.097.615a.9.9 0 0 0 .304.413.87.87 0 0 0 .519.146 1 1 0 0 0 .457-.096.67.67 0 0 0 .272-.264q.09-.164.091-.363v-.255H8.82v-.59h1.576v.798q0 .29-.097.55a1.3 1.3 0 0 1-.293.458 1.4 1.4 0 0 1-.495.313q-.296.111-.697.111a2 2 0 0 1-.753-.132 1.45 1.45 0 0 1-.533-.377 1.6 1.6 0 0 1-.32-.58 2.5 2.5 0 0 1-.105-.745v-.506q0-.543.2-.95.201-.406.582-.633.384-.228.926-.228.357 0 .636.1.281.1.48.275.2.176.314.407Zm-8.64-.706H0v4h.791v-1.343h.803q.43 0 .732-.172.305-.177.463-.475a1.4 1.4 0 0 0 .161-.677q0-.374-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.381.57.57 0 0 1-.238.24.8.8 0 0 1-.375.082H.788v-1.406h.66q.327 0 .512.182.185.181.185.521m1.964 2.666V13.25h.032l1.761 2.675h.656v-3.999h-.75v2.66h-.032l-1.752-2.66h-.662v4z"/>
+</svg>`,
+    wav: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-file-music"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M11 16m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 16l0 -5l2 1" /></svg>`,
+    txt: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-file-type-txt"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M16.5 15h3" /><path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" /><path d="M4.5 15h3" /><path d="M6 15v6" /><path d="M18 15v6" /><path d="M10 15l4 6" /><path d="M10 21l4 -6" /></svg>`,
+    makefile: `<svg  xmlns="http://www.w3.org/2000/svg"  width="16"  height="16"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-file-3d"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M12 13.5l4 -1.5" /><path d="M8 11.846l4 1.654v4.5l4 -1.846v-4.308l-4 -1.846z" /><path d="M8 12v4.2l4 1.8" /></svg>`,
   };
-  const iconClass = iconMap[ext] || (isDir ? "fas fa-folder" : "fas fa-file");
-  console.log(`Returning icon class: ${iconClass}`);
-  return iconClass;
+  const iconSvg = iconMap[ext] || (isDir ? iconMap.folder : iconMap.txt);
+  console.log(`[main] Returning icon SVG for ${ext}`);
+  return iconSvg;
 });
 
 ipcMain.handle("menu:showContextMenu", async (event, filePath, isDir) => {
   console.log(
-    `IPC menu:showContextMenu called for ${filePath}, isDir: ${isDir}`
+    `[main] IPC menu:showContextMenu called for ${filePath}, isDir: ${isDir}`
   );
   const template = [
     {
@@ -736,7 +744,7 @@ ipcMain.handle("menu:showContextMenu", async (event, filePath, isDir) => {
 });
 
 ipcMain.handle("dialog:showInput", async (event, options) => {
-  console.log(`IPC dialog:showInput called with options:`, options);
+  console.log(`[main] IPC dialog:showInput called with options:`, options);
   try {
     const { response, input } = await dialog.showMessageBox(mainWindow, {
       type: "question",
@@ -747,13 +755,15 @@ ipcMain.handle("dialog:showInput", async (event, options) => {
       cancelId: 1,
       textInput: options.defaultInput || "",
     });
-    console.log(`dialog:showInput response: ${response}, input: ${input}`);
+    console.log(
+      `[main] dialog:showInput response: ${response}, input: ${input}`
+    );
     if (response === 0 && input) {
       return { value: input };
     }
     return { value: null };
   } catch (error) {
-    console.error(`Error in dialog:showInput: ${error.message}`);
+    console.error(`[main] Error in dialog:showInput: ${error.message}`);
     return { error: error.message };
   }
 });
