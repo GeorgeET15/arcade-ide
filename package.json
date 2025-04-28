@@ -41,6 +41,7 @@
       "lib/stb_image_resize2.h",
       "music/**/*",
       "themes/**/*",
+      "completions/**/*",
       "node_modules/monaco-editor/min/**/*",
       "node_modules/@fortawesome/fontawesome-free/**/*"
     ],
