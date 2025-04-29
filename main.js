@@ -10,6 +10,8 @@ const path = require("path");
 const fs = require("fs").promises;
 const { exec } = require("child_process");
 const util = require("util");
+const axios = require("axios");
+const { GoogleGenAI, Modality } = require("@google/genai");
 
 console.log("Main process starting...");
 console.log(`__dirname: ${__dirname}`);
@@ -18,6 +20,10 @@ console.log(`Process versions: ${JSON.stringify(process.versions)}`);
 console.log(`Node module paths: ${module.paths.join(", ")}`);
 
 const execPromise = util.promisify(exec);
+
+const ai = new GoogleGenAI({
+  apiKey: "AIzaSyD61XXk7aplSLCryA5qdj8znYP58duMLm4", // Hardcoded Google API key
+});
 
 // Custom JSON storage
 const configPath = path.join(app.getPath("userData"), "arcade-ide-config.json");
@@ -766,4 +772,174 @@ ipcMain.handle("dialog:showInput", async (event, options) => {
     console.error(`[main] Error in dialog:showInput: ${error.message}`);
     return { error: error.message };
   }
+});
+
+ipcMain.handle("generateSprite", async (event, spriteData) => {
+  console.log(`[main] IPC generateSprite called with data:`, spriteData);
+  try {
+    // Validate current folder path
+    const currentFolderPath = config.lastOpenFolder;
+    if (!currentFolderPath) {
+      return {
+        success: false,
+        error: "No folder open. Please open a folder first.",
+      };
+    }
+
+    // Retrieve API keys from config
+    const geminiApiKey = config.geminiApiKey || "";
+    const removeBgApiKey = config.removeBgApiKey || "";
+
+    if (!geminiApiKey) {
+      console.error("[main] Gemini API key is not set");
+      return {
+        success: false,
+        error: "Gemini API key is not set. Please configure it in settings.",
+      };
+    }
+
+    // Initialize Google AI with the retrieved API key
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+
+    // Create assets/sprites folders if they don't exist
+    const assetsPath = path.join(currentFolderPath, "assets");
+    const spritesPath = path.join(assetsPath, "sprites");
+    try {
+      await fs.mkdir(assetsPath, { recursive: true });
+      await fs.mkdir(spritesPath, { recursive: true });
+    } catch (mkdirError) {
+      console.error(
+        `[main] Failed to create assets/sprites folders: ${mkdirError.message}`
+      );
+      return {
+        success: false,
+        error: `Failed to create assets/sprites folders: ${mkdirError.message}`,
+      };
+    }
+
+    // Generate prompt
+    const prompt = `
+      A pixel art sprite of a ${spriteData.subject} viewed from a ${spriteData.viewAngle} perspective, designed for a ${spriteData.gameGenre} game. The sprite has a fully transparent background (no scenery, patterns, or artifacts, only the ${spriteData.subject}). The sprite is saved as a transparent .png file.
+      
+      Design Style:
+      - Pixel art with distinct, clean pixels
+      - ${spriteData.artAesthetic} aesthetic
+      - Limited color palette (${spriteData.colorCount} colors maximum)
+      - Size: ${spriteData.pixelSize}
+      - Clear, symmetrical, or balanced design as appropriate for the subject
+      - Includes defining features relevant to the ${spriteData.subject} (e.g., wings for a dragon, weapon for a character)
+      
+      Goal:
+      The sprite is optimized for use in a 2D game engine like Godot, Unity, or Phaser, with no background elements.
+    `;
+
+    // Generate image using Google AI
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp-image-generation",
+      contents: prompt,
+      config: {
+        responseModalities: [Modality.TEXT, Modality.IMAGE],
+      },
+    });
+
+    let imageBuffer = null;
+    for (const part of response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        imageBuffer = Buffer.from(part.inlineData.data, "base64");
+        break;
+      }
+    }
+
+    if (!imageBuffer) {
+      return { success: false, error: "No image generated" };
+    }
+
+    // Remove background using Remove.bg
+    const outputFile = path.join(spritesPath, `${spriteData.imageName}.png`);
+    try {
+      if (!removeBgApiKey) {
+        console.warn(
+          "[main] Remove.bg API key is not set, saving original image"
+        );
+        await fs.writeFile(outputFile, imageBuffer);
+        return {
+          success: true,
+          filePath: outputFile,
+          warning: "Remove.bg API key not set. Original image saved.",
+        };
+      }
+
+      const transparentBuffer = await removeBg(imageBuffer, removeBgApiKey);
+      await fs.writeFile(outputFile, transparentBuffer);
+      console.log(
+        `[main] Sprite with transparent background saved to: ${outputFile}`
+      );
+    } catch (bgError) {
+      console.error("[main] Background removal failed:", bgError.message);
+      // Fallback: Save the original image
+      await fs.writeFile(outputFile, imageBuffer);
+      console.log(`[main] Original sprite saved to: ${outputFile}`);
+      return {
+        success: true,
+        filePath: outputFile,
+        warning: `Background removal failed: ${bgError.message}. Original image saved.`,
+      };
+    }
+
+    return { success: true, filePath: outputFile };
+  } catch (error) {
+    console.error("[main] Sprite generation error:", error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// Updated removeBg function to accept API key as parameter
+async function removeBg(buffer, apiKey) {
+  const apiUrl = "https://api.remove.bg/v1.0/removebg";
+
+  try {
+    const formData = {
+      image_file: buffer,
+      size: "auto",
+    };
+
+    const response = await axios.post(apiUrl, formData, {
+      headers: {
+        "X-Api-Key": apiKey,
+        "Content-Type": "multipart/form-data",
+      },
+      responseType: "arraybuffer",
+    });
+
+    return Buffer.from(response.data);
+  } catch (error) {
+    throw new Error(
+      `Error processing background removal: ${
+        error.response?.data?.errors?.[0]?.title || error.message
+      }`
+    );
+  }
+}
+ipcMain.handle("platform:get", async () => {
+  console.log("[main] IPC platform:get called");
+  try {
+    const platform = process.platform;
+    return platform;
+  } catch (error) {
+    console.error("[main] platform:get failed:", error.message);
+    throw error;
+  }
+});
+ipcMain.handle("settings:set", (event, key, value) => {
+  console.log(
+    `[main] IPC settings:set called with key: ${key}, value: ${value}`
+  );
+  if (value === null && key in config) {
+    delete config[key];
+    console.log(`[main] settings:set deleted key: ${key}`);
+  } else {
+    config[key] = value;
+    console.log(`[main] settings:set updated key: ${key} to ${value}`);
+  }
+  saveConfig();
 });

@@ -45,7 +45,11 @@
 body.arcade-bg {
   font-family: var(--primary-font);
   color: var(--primary-foreground);
-  background: var(--primary-background);
+  background: linear-gradient(
+    180deg,
+    var(--primary-background) 0%,
+    #0b1c1f 50%
+  );
   display: flex;
   height: 100vh;
   overflow: hidden;
@@ -57,7 +61,7 @@ body.arcade-bg {
   height: 100%;
 }
 
-/* Sidebar */
+/* Left Sidebar */
 .arcade-sidebar {
   background: var(--sidebar-background);
   display: flex;
@@ -67,6 +71,7 @@ body.arcade-bg {
   flex-shrink: 0;
   transition: width var(--transition-ease);
   overflow: hidden;
+  order: 0; /* Left sidebar first */
 }
 
 .arcade-sidebar.collapsed {
@@ -153,6 +158,194 @@ body.arcade-bg {
 .arcade-sidebar.collapsed #file-tree,
 .arcade-sidebar.collapsed .recent-projects {
   display: none;
+}
+
+/* Right Sidebar (Arcade Magic) */
+.arcade-sidebar-right {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  flex-shrink: 0;
+  width: 300px; /* Full width when expanded */
+  transition: width var(--transition-ease);
+  order: 2;
+  position: relative;
+}
+
+.arcade-sidebar-right.collapsed {
+  width: 0; /* Collapse to zero width in flex layout */
+}
+
+.arcade-sidebar-right.collapsed .sidebar-right-content {
+  transform: translateX(252px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Activity Bar for Right Sidebar */
+.arcade-sidebar-right .sidebar-activity {
+  background: var(--primary-background);
+  width: 48px;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-left: var(--border-style) var(--sidebar-border);
+  z-index: 1000;
+}
+
+.arcade-sidebar-right .sidebar-activity button {
+  background: none;
+  border: none;
+  color: var(--secondary-foreground);
+  font-size: 24px;
+  padding: 12px;
+  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-ease), background var(--transition-ease);
+}
+
+.arcade-sidebar-right .sidebar-activity button:hover {
+  color: var(--primary-foreground);
+  background: var(--tertiary-background);
+}
+
+.arcade-sidebar-right .sidebar-activity button.active {
+  color: var(--primary-foreground);
+  background: var(--tertiary-background);
+}
+
+/* Sidebar Content */
+.arcade-sidebar-right .sidebar-right-content {
+  width: 252px;
+  background: var(--sidebar-background);
+  border-left: var(--border-style) var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: transform var(--transition-ease), opacity var(--transition-ease);
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.arcade-sidebar-right .sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--sidebar-background);
+  border-bottom: var(--border-style) var(--sidebar-border);
+  height: 40px;
+}
+
+.arcade-sidebar-right .sidebar-header span {
+  font-family: var(--header-font);
+  font-size: 12px;
+  color: var(--primary-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Sprite Generation Form */
+.sprite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 15px;
+  font-family: var(--primary-font);
+  font-size: 12px;
+  color: var(--primary-foreground);
+  background: var(--secondary-background);
+  border-radius: var(--border-radius);
+}
+
+.sprite-form h2 {
+  font-family: var(--header-font);
+  font-size: 14px;
+  color: var(--primary-foreground);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.sprite-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sprite-form label {
+  font-family: var(--primary-font);
+  font-size: 12px;
+  color: var(--secondary-foreground);
+}
+
+.sprite-form input {
+  width: 100%;
+  padding: 8px;
+  background: var(--dialog-input-background);
+  border: 1px solid var(--secondary-foreground);
+  color: var(--primary-foreground);
+  font-family: var(--primary-font);
+  font-size: 12px;
+  border-radius: var(--border-radius);
+  transition: border-color var(--transition-ease);
+}
+
+.sprite-form input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.sprite-form .form-button {
+  background: var(--accent-color);
+  border: none;
+  color: var(--primary-foreground);
+  padding: 10px;
+  font-family: var(--header-font);
+  font-size: 12px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background var(--transition-ease);
+}
+
+.sprite-form .form-button:hover {
+  background: var(--highlight-color);
+}
+
+.sprite-form .error-message {
+  color: var(--error-color);
+  font-size: 11px;
+  margin-top: 4px;
+  display: none;
+}
+
+.sprite-form .error-message.show {
+  display: block;
+}
+
+.sprite-form .sprite-preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--tertiary-background);
+  border: 1px solid var(--secondary-foreground);
+  border-radius: var(--border-radius);
+}
+
+.sprite-form .sprite-preview-placeholder span {
+  font-family: var(--primary-font);
+  font-size: 12px;
+  color: var(--secondary-foreground);
 }
 
 /* File Tree */
@@ -338,6 +531,7 @@ body.arcade-bg {
   flex-grow: 1;
   height: 100%;
   overflow: hidden;
+  order: 1; /* Main content in the middle */
 }
 
 /* Toolbar */
@@ -354,6 +548,7 @@ body.arcade-bg {
   display: flex;
   gap: 4px;
   margin-left: auto;
+  margin-right: 40px;
 }
 
 .arcade-button {
@@ -725,6 +920,7 @@ body.arcade-bg {
 }
 
 .settings-content select,
+#settings-dialog input[type="password"],
 .settings-content input[type="text"],
 .settings-content input[type="number"] {
   width: 100%;

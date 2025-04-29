@@ -250,4 +250,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
       throw error;
     }
   },
+  generateSprite: async (spriteData) => {
+    try {
+      const result = await ipcRenderer.invoke("generateSprite", spriteData);
+      console.log("[electronAPI] generateSprite:", result);
+      return result;
+    } catch (error) {
+      console.error("[electronAPI] generateSprite failed:", error.message);
+      throw error;
+    }
+  },
 });

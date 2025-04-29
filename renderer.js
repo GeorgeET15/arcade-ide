@@ -20,9 +20,14 @@ const newFolderButton = document.getElementById("btn-new-folder");
 const toggleOutputButton = document.getElementById("btn-toggle-output");
 const clearOutputButton = document.getElementById("btn-clear-output");
 const toggleSidebarButton = document.getElementById("btn-toggle-sidebar");
+const toggleSidebarRightButton = document.getElementById(
+  "btn-toggle-sidebar-right"
+);
 const settingsButton = document.getElementById("btn-settings");
 const settingsDialog = document.getElementById("settings-dialog");
 const themeSelector = document.getElementById("theme-selector");
+const geminiApiKeyInput = document.getElementById("gemini-api-key-input");
+const removeBgApiKeyInput = document.getElementById("remove-bg-api-key-input");
 const closeSettingsButton = document.getElementById("btn-close-settings");
 const introMessage = document.getElementById("intro-message");
 const buildToolPathInput = document.getElementById("build-tool-path");
@@ -33,6 +38,10 @@ const logLevelSelector = document.getElementById("log-level");
 const recentProjectsList = document.getElementById("recent-projects-list");
 const clearRecentProjectsButton = document.getElementById(
   "btn-clear-recent-projects"
+);
+const spriteGenerateForm = document.getElementById("sprite-generate-form");
+const toggleRightSidebarButton = document.getElementById(
+  "btn-toggle-sidebar-right"
 );
 
 console.log("[renderer] Renderer script loaded");
@@ -289,10 +298,12 @@ async function closeCurrentFolder() {
     await window.electronAPI.setSettings("lastOpenFolder", null);
     console.log("[renderer] Cleared lastOpenFolder setting");
     currentFolderPath = null;
+    console.log("[renderer] Set currentFolderPath to null");
     fileTreeElement.innerHTML =
       '<li class="placeholder">Open a folder to see files</li>';
     newFileInFolderButton.disabled = true;
     newFolderButton.disabled = true;
+    closeFolderButton.disabled = true;
     outputArea.textContent = "Folder closed.";
     showToast("Folder closed");
   } catch (error) {
@@ -540,7 +551,7 @@ function setTabModified(tabId, isModified) {
   } else {
     indicator.innerHTML = " ";
     indicator.style.display = "none";
-    closeButton.innerHTML = "×";
+    closeButton.innerHTML = `<svg  xmlns="http://www.w3.org/2000/svg"  width="14"  height="14"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>`;
     tabInfo.domElement.classList.remove("modified");
   }
 
@@ -841,20 +852,32 @@ async function handleOpenFolder() {
     return;
   }
   outputArea.textContent = "Opening folder dialog...";
+  console.log("[renderer] Initiating folder open dialog");
   try {
     const result = await window.electronAPI.openFolder();
+    console.log("[renderer] openFolder result:", result);
     if (!result.canceled && result.folderPath && result.success) {
       await window.electronAPI.setSettings("lastOpenFolder", result.folderPath);
       console.log(`[renderer] Set lastOpenFolder to ${result.folderPath}`);
       await loadAndDisplayFolder(result.folderPath);
       outputArea.textContent = `Opened: ${getBaseName(result.folderPath)}`;
+      console.log(
+        "[renderer] currentFolderPath after open:",
+        currentFolderPath
+      );
+      showToast(`Opened ${getBaseName(result.folderPath)}`);
     } else if (result.error) {
       outputArea.textContent = `Error: ${result.error}`;
+      console.error("[renderer] openFolder error:", result.error);
+      showToast("Failed to open folder");
     } else {
       outputArea.textContent = "Folder open canceled.";
+      console.log("[renderer] Folder open canceled");
     }
   } catch (error) {
     outputArea.textContent = `Error: ${error.message}`;
+    console.error("[renderer] handleOpenFolder error:", error.message);
+    showToast("Failed to open folder");
   }
 }
 
@@ -863,15 +886,13 @@ async function loadAndDisplayFolder(folderPath) {
     outputArea.textContent = "Error: Electron API not available.";
     return;
   }
-  currentFolderPath = folderPath;
-  newFileInFolderButton.disabled = !currentFolderPath;
-  newFolderButton.disabled = !currentFolderPath;
-  closeFolderButton.disabled = !currentFolderPath;
   console.log(`[renderer] Loading folder: ${folderPath}`);
   try {
     const result = await window.electronAPI.readDir(folderPath);
     console.log(`[renderer] readDir result for ${folderPath}:`, result);
     if (result.success && result.files) {
+      currentFolderPath = folderPath; // Set currentFolderPath before updating UI
+      console.log("[renderer] Set currentFolderPath:", currentFolderPath);
       fileTreeElement.innerHTML = "";
       await Promise.all(
         result.files.map((file) => addFileToTree(file, folderPath, 0))
@@ -879,6 +900,9 @@ async function loadAndDisplayFolder(folderPath) {
       console.log(
         `[renderer] File tree populated for ${folderPath}, HTML length: ${fileTreeElement.innerHTML.length}`
       );
+      newFileInFolderButton.disabled = false;
+      newFolderButton.disabled = false;
+      closeFolderButton.disabled = false;
       await loadRecentProjects();
     } else {
       outputArea.textContent = `Error: ${result.error || "No files found"}`;
@@ -904,6 +928,7 @@ async function loadAndDisplayFolder(folderPath) {
     fileTreeElement.innerHTML =
       '<li class="placeholder">Open a folder to see files</li>';
   }
+  console.log("[renderer] currentFolderPath after load:", currentFolderPath);
 }
 
 async function toggleFolder(li, folderPath, level) {
@@ -912,9 +937,9 @@ async function toggleFolder(li, folderPath, level) {
   li.classList.toggle("expanded");
   const chevron = li.querySelector(".toggle i");
   if (chevron) {
-    chevron.className = `<svg  xmlns="http://www.w3.org/2000/svg"  width="16"  height="16"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-${
+    chevron.className = `icon icon-tabler icons-tabler-outline icon-tabler-chevron-${
       isExpanded ? "right" : "down"
-    }"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 9l6 6l6 -6" /></svg>`;
+    }`;
   }
   console.log(`[renderer] Folder ${folderPath} expanded: ${!isExpanded}`);
   if (!isExpanded) {
@@ -984,7 +1009,7 @@ async function addFileToTree(file, parentPath, level) {
   const iconSvg = await window.electronAPI.getIconClass(file.name, file.isDir);
   console.log(
     `[renderer] Icon SVG for ${file.name}: ${iconSvg.substring(0, 50)}...`
-  ); // Debug SVG content
+  );
   let content = `<span class="file-content" style="padding-left: ${indent}px;">`;
   if (file.isDir) {
     content += `<span class="toggle"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg></span>`;
@@ -1164,6 +1189,28 @@ function toggleSidebar(force = false) {
   }
 }
 
+function toggleRightSidebar(force = false) {
+  const sidebarRight = document.getElementById("sidebar-right");
+  const isCollapsed = sidebarRight.classList.contains("collapsed");
+  if (force || !isCollapsed) {
+    sidebarRight.classList.add("collapsed");
+    toggleRightSidebarButton.classList.remove("active");
+    toggleRightSidebarButton.innerHTML =
+      '<svg  xmlns="http://www.w3.org/2000/svg"  width="32"  height="32"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-right-expand"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M15 4v16" /><path d="M10 10l-2 2l2 2" /></svg>';
+    window.electronAPI.setSettings("rightSidebarCollapsed", true);
+    console.log("[renderer] Right sidebar collapsed");
+  } else {
+    sidebarRight.classList.remove("collapsed");
+    toggleRightSidebarButton.classList.add("active");
+    toggleRightSidebarButton.innerHTML =
+      '<svg  xmlns="http://www.w3.org/2000/svg"  width="32"  height="32"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-right-collapse"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M15 4v16" /><path d="M9 10l2 2l-2 2" /></svg>';
+
+    window.electronAPI.setSettings("rightSidebarCollapsed", false);
+    console.log("[renderer] Right sidebar expanded");
+  }
+  sidebarRight.offsetHeight; // Trigger reflow
+}
+
 function toggleOutput(force = false) {
   const outputContainer = document.getElementById("output-container");
   const isCollapsed = outputContainer.classList.contains("collapsed");
@@ -1255,6 +1302,11 @@ function attachUIEventListeners() {
     () => (outputArea.textContent = "")
   );
   toggleSidebarButton.addEventListener("click", () => toggleSidebar());
+  if (toggleRightSidebarButton) {
+    toggleRightSidebarButton.addEventListener("click", () =>
+      toggleRightSidebar()
+    );
+  }
   settingsButton.addEventListener("click", async () => {
     settingsDialog.style.display = "block";
     // Populate theme selector with valid options
@@ -1295,6 +1347,11 @@ function attachUIEventListeners() {
       "logLevel",
       "info"
     );
+    // Populate API key inputs
+    geminiApiKeyInput.value =
+      (await window.electronAPI.getSettings("geminiApiKey", "")) || "";
+    removeBgApiKeyInput.value =
+      (await window.electronAPI.getSettings("removeBgApiKey", "")) || "";
   });
   themeSelector.addEventListener("change", async () => {
     const newTheme = themeSelector.value;
@@ -1349,10 +1406,173 @@ function attachUIEventListeners() {
     console.log(`[renderer] Log level updated to: ${logLevelSelector.value}`);
   });
 
+  // Add event listeners for API key inputs
+  geminiApiKeyInput.addEventListener("change", async () => {
+    await window.electronAPI.setSettings(
+      "geminiApiKey",
+      geminiApiKeyInput.value
+    );
+    console.log(`[renderer] Gemini API key updated`);
+  });
+
+  removeBgApiKeyInput.addEventListener("change", async () => {
+    await window.electronAPI.setSettings(
+      "removeBgApiKey",
+      removeBgApiKeyInput.value
+    );
+    console.log(`[renderer] Remove.bg API key updated`);
+  });
+
   closeSettingsButton.addEventListener("click", () => {
     settingsDialog.style.display = "none";
     console.log("[renderer] Settings dialog closed");
   });
 
   clearRecentProjectsButton.addEventListener("click", clearRecentProjects);
+
+  if (spriteGenerateForm) {
+    spriteGenerateForm.addEventListener("submit", handleGenerateSprite);
+  }
+}
+
+async function handleGenerateSprite(event) {
+  event.preventDefault();
+  if (!window.electronAPI) {
+    outputArea.textContent = "Error: Electron API not available.";
+    showToast("Electron API not available");
+    return;
+  }
+
+  // Check if file tree indicates an open folder
+  if (
+    !currentFolderPath &&
+    fileTreeElement.children.length > 0 &&
+    !fileTreeElement.querySelector(".placeholder")
+  ) {
+    console.warn(
+      "[renderer] currentFolderPath is null but file tree is populated, attempting to recover"
+    );
+    // Attempt to recover by checking lastOpenFolder
+    try {
+      const lastFolder = await window.electronAPI.getSettings(
+        "lastOpenFolder",
+        null
+      );
+      if (lastFolder) {
+        console.log("[renderer] Recovering with lastOpenFolder:", lastFolder);
+        await loadAndDisplayFolder(lastFolder);
+      }
+    } catch (error) {
+      console.error("[renderer] Failed to recover folder:", error.message);
+    }
+  }
+
+  if (!currentFolderPath) {
+    outputArea.textContent = "No folder open. Please open a folder first.";
+    showToast("Open a folder to generate sprites");
+    return;
+  }
+
+  const errorMessage = spriteGenerateForm.querySelector(".error-message");
+  if (errorMessage) {
+    errorMessage.classList.remove("show");
+    errorMessage.textContent = "";
+  }
+
+  const spriteData = {
+    subject: spriteGenerateForm.querySelector("#subject").value.trim(),
+    viewAngle: spriteGenerateForm.querySelector("#view-angle").value.trim(),
+    gameGenre: spriteGenerateForm.querySelector("#game-genre").value.trim(),
+    colorCount: spriteGenerateForm.querySelector("#color-count").value.trim(),
+    pixelSize: spriteGenerateForm.querySelector("#pixel-size").value.trim(),
+    artAesthetic: spriteGenerateForm
+      .querySelector("#art-aesthetic")
+      .value.trim(),
+    imageName: spriteGenerateForm.querySelector("#image-name").value.trim(),
+  };
+
+  // Basic validation
+  for (const [key, value] of Object.entries(spriteData)) {
+    if (!value) {
+      const errorText = `Please fill in the ${key} field.`;
+      if (errorMessage) {
+        errorMessage.textContent = errorText;
+        errorMessage.classList.add("show");
+      }
+      outputArea.textContent = `Error: Missing ${key}`;
+      showToast(`Missing ${key}`);
+      return;
+    }
+  }
+
+  // Validate imageName
+  if (!/^[a-zA-Z0-9_-]+$/.test(spriteData.imageName)) {
+    const errorText =
+      "Image name must contain only letters, numbers, underscores, or hyphens.";
+    if (errorMessage) {
+      errorMessage.textContent = errorText;
+      errorMessage.classList.add("show");
+    }
+    outputArea.textContent = "Error: Invalid image name";
+    showToast("Invalid image name");
+    return;
+  }
+
+  outputArea.textContent = `Generating sprite: ${spriteData.imageName}.png...`;
+  console.log("[renderer] Generating sprite with data:", spriteData);
+  try {
+    const result = await window.electronAPI.generateSprite(spriteData);
+    console.log("[renderer] generateSprite result:", result);
+    if (result.success) {
+      outputArea.textContent = `Generated: ${getBaseName(result.filePath)}`;
+      showToast(`Generated ${getBaseName(result.filePath)}`);
+      if (result.warning) {
+        console.warn(`[renderer] Sprite generation warning: ${result.warning}`);
+        outputArea.textContent += `\nWarning: ${result.warning}`;
+      }
+
+      // Refresh file tree and expand assets/sprites folders
+      await loadAndDisplayFolder(currentFolderPath);
+      const assetsPath = await window.electronAPI.pathJoin(
+        currentFolderPath,
+        "assets"
+      );
+      const spritesPath = await window.electronAPI.pathJoin(
+        assetsPath,
+        "sprites"
+      );
+      const assetsLi = fileTreeElement.querySelector(
+        `li.folder[data-path="${assetsPath}"]`
+      );
+      if (assetsLi && !assetsLi.classList.contains("expanded")) {
+        await toggleFolder(assetsLi, assetsPath, 1);
+      }
+      const spritesLi = fileTreeElement.querySelector(
+        `li.folder[data-path="${spritesPath}"]`
+      );
+      if (spritesLi && !spritesLi.classList.contains("expanded")) {
+        await toggleFolder(spritesLi, spritesPath, 2);
+      }
+
+      // Open the sprite as a preview tab
+      openOrFocusTab(result.filePath, "", true, "image");
+    } else {
+      const errorText = result.error || "Failed to generate sprite";
+      if (errorMessage) {
+        errorMessage.textContent = errorText;
+        errorMessage.classList.add("show");
+      }
+      outputArea.textContent = `Error: ${errorText}`;
+      showToast("Failed to generate sprite");
+    }
+  } catch (error) {
+    const errorText = error.message || "Failed to generate sprite";
+    if (errorMessage) {
+      errorMessage.textContent = errorText;
+      errorMessage.classList.add("show");
+    }
+    outputArea.textContent = `Error: ${errorText}`;
+    showToast("Failed to generate sprite");
+    console.error(`[renderer] Error generating sprite: ${error.message}`);
+  }
 }

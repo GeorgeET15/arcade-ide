@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data: file:; media-src 'self' data: file:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' blob:; img-src 'self' data: file: blob:; media-src 'self' data: file:;"
     />
     <title>Arcade IDE</title>
     <link rel="stylesheet" id="theme-stylesheet" href="style.css" />
@@ -14,7 +14,7 @@
       href="./node_modules/monaco-editor/min/vs/editor/editor.main.css"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Mono:wght@400;500&family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
     <script>
@@ -85,7 +85,7 @@
               />
             </svg>
           </button>
-          <button id="btn-new-file-in-folder" title="New File">
+          <button id="btn-new-file-in-folder" title="New File" disabled>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="32"
@@ -107,7 +107,7 @@
               <path d="M9 14l6 0" />
             </svg>
           </button>
-          <button id="btn-new-folder" title="New Folder">
+          <button id="btn-new-folder" title="New Folder" disabled>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="32"
@@ -153,7 +153,31 @@
         <div class="sidebar-content">
           <div class="sidebar-header">
             <span>Explorer</span>
-            <div class="sidebar-buttons"></div>
+            <div class="sidebar-buttons">
+              <button
+                id="btn-open-folder"
+                title="Open Folder"
+                class="arcade-button-noborder"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="icon icon-tabler icons-tabler-outline icon-tabler-folder-open"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path
+                    d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="recent-projects">
             <div class="recent-projects-header">
@@ -195,7 +219,11 @@
       </div>
       <div class="main-content">
         <div class="arcade-toolbar">
-          <button id="btn-new-file" title="New File" class="arcade-button">
+          <button
+            id="btn-new-file"
+            title="New File (Ctrl+N)"
+            class="arcade-button"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -220,7 +248,7 @@
           </button>
           <button
             id="btn-open-file"
-            title="Open File via Dialog"
+            title="Open File via Dialog (Ctrl+O)"
             class="arcade-button"
           >
             Open File...
@@ -365,6 +393,51 @@
                   - Click the gear icon for settings.<br />
                   Version: 1.0
                 </p>
+                <div class="intro-buttons">
+                  <button id="btn-open-folder" class="arcade-button">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="icon icon-tabler icons-tabler-outline icon-tabler-folder-open"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path
+                        d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"
+                      />
+                    </svg>
+                    Open Folder
+                  </button>
+                  <button id="btn-new-file" class="arcade-button">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="icon icon-tabler icons-tabler-outline icon-tabler-file-plus"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                      <path
+                        d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"
+                      />
+                      <path d="M12 11l0 6" />
+                      <path d="M9 14l6 0" />
+                    </svg>
+                    New File
+                  </button>
+                </div>
               </div>
             </div>
             <div
@@ -384,7 +457,11 @@
             <div class="output-header">
               <h3>Output</h3>
               <div class="output-buttons">
-                <button id="btn-clear-output" title="Clear Output">
+                <button
+                  id="btn-clear-output"
+                  title="Clear Output"
+                  class="arcade-button-noborder"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
@@ -405,12 +482,16 @@
                     <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
                   </svg>
                 </button>
-                <button id="btn-toggle-output" title="Collapse Output">
+                <button
+                  id="btn-toggle-output"
+                  title="Collapse Output"
+                  class="arcade-button-noborder"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
                     height="20"
-                    viewBox="0 0 24 24"
+                    viewBox="0 0 24 22"
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
@@ -428,45 +509,210 @@
           </div>
         </div>
       </div>
+      <div class="arcade-sidebar-right" id="sidebar-right">
+        <div class="sidebar-activity">
+          <button
+            id="btn-toggle-sidebar-right"
+            title="Arcade Magic"
+            class="active"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-left-expand"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path
+                d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"
+              />
+              <path d="M15 4v16" />
+              <path d="M10 14l-2 -2l2 -2" />
+            </svg>
+          </button>
+        </div>
+        <div class="sidebar-right-content">
+          <div class="sidebar-header">
+            <span>Arcade Magic</span>
+            <div class="sidebar-buttons"></div>
+          </div>
+          <div class="sprite-form">
+            <form id="sprite-generate-form">
+              <h2>Sprite Generator</h2>
+              <div class="form-field">
+                <label for="subject">Sprite Subject:</label>
+                <input
+                  type="text"
+                  id="subject"
+                  placeholder="e.g., Knight, Dragon"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="view-angle">View Angle:</label>
+                <input
+                  type="text"
+                  id="view-angle"
+                  placeholder="e.g., Side, Top-Down"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="game-genre">Game Genre:</label>
+                <input
+                  type="text"
+                  id="game-genre"
+                  placeholder="e.g., RPG, Platformer"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="color-count">Color Count:</label>
+                <input
+                  type="number"
+                  id="color-count"
+                  min="1"
+                  max="256"
+                  placeholder="e.g., 8, 16"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="pixel-size">Pixel Size:</label>
+                <input
+                  type="number"
+                  id="pixel-size"
+                  min="16"
+                  max="512"
+                  placeholder="e.g., 32, 64"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="art-aesthetic">Art Aesthetic:</label>
+                <input
+                  type="text"
+                  id="art-aesthetic"
+                  placeholder="e.g., Retro, Modern"
+                  required
+                />
+              </div>
+              <div class="form-field">
+                <label for="image-name">Image Name:</label>
+                <input
+                  type="text"
+                  id="image-name"
+                  placeholder="e.g., knight_sprite"
+                  required
+                />
+              </div>
+              <div class="error-message"></div>
+              <button type="submit" class="form-button arcade-button">
+                Generate Sprite
+              </button>
+              <div class="sprite-preview-placeholder">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--secondary-foreground)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="icon icon-tabler icons-tabler-outline icon-tabler-photo"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M15 8h.01" />
+                  <path
+                    d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"
+                  />
+                  <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
+                  <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
+                </svg>
+                <span>Awaiting Sprite...</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="settings-dialog" class="settings-dialog" style="display: none">
       <div class="settings-content">
         <h3>Settings</h3>
-        <label for="theme-selector">Theme:</label>
-        <select id="theme-selector">
-          <option value="style.css">Charcoal-Teal</option>
-          <option value="themes/neon-purple.css">Neon-Purple</option>
-          <option value="themes/retro-red.css">Retro-Red</option>
-          <option value="themes/cyber-green.css">Cyber Green</option>
-          <option value="themes/vs-dark.css">VS-Dark</option>
-          <option value="themes/vs-light.css">VS-Light</option>
-          <option value="themes/github-dark.css">GitHub-Dark</option>
-        </select>
-        <label for="build-tool-path">Build Tool Path:</label>
-        <input
-          id="build-tool-path"
-          type="text"
-          placeholder="e.g., mingw32-make"
-        />
-        <label for="auto-save">Auto-Save:</label>
-        <input id="auto-save" type="checkbox" />
-        <label for="font-size">Editor Font Size:</label>
-        <input id="font-size" type="number" min="8" max="24" value="12" />
-        <label for="file-extensions"
-          >Visible File Extensions (comma-separated):</label
-        >
-        <input
-          id="file-extensions"
-          type="text"
-          placeholder="c,h,png,wav,makefile"
-        />
-        <label for="log-level">Log Level:</label>
-        <select id="log-level">
-          <option value="debug">Debug</option>
-          <option value="info" selected>Info</option>
-          <option value="error">Error</option>
-        </select>
-        <button id="btn-close-settings" class="arcade-button">Close</button>
+        <div class="form-group">
+          <label for="theme-selector">Theme:</label>
+          <select id="theme-selector">
+            <option value="style.css">Charcoal Teal</option>
+            <option value="themes/neon-purple.css">Neon Purple</option>
+            <option value="themes/retro-red.css">Retro Red</option>
+            <option value="themes/cyber-green.css">Cyber Green</option>
+            <option value="themes/vs-dark.css">VS Dark</option>
+            <option value="themes/vs-light.css">VS Light</option>
+            <option value="themes/github-dark.css">GitHub Dark</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="build-tool-path">Build Tool Path:</label>
+          <input
+            id="build-tool-path"
+            type="text"
+            placeholder="e.g., mingw32-make"
+          />
+        </div>
+        <div class="form-group">
+          <label for="auto-save">Auto Save:</label>
+          <input id="auto-save" type="checkbox" />
+        </div>
+        <div class="form-group">
+          <label for="font-size">Editor Font Size:</label>
+          <input id="font-size" type="number" min="8" max="24" value="12" />
+        </div>
+        <div class="form-group">
+          <label for="file-extensions"
+            >Visible File Extensions (comma-separated):</label
+          >
+          <input
+            id="file-extensions"
+            type="text"
+            placeholder="c,h,png,wav,makefile"
+          />
+        </div>
+        <div class="form-group">
+          <label for="log-level">Log Level:</label>
+          <select id="log-level">
+            <option value="debug">Debug</option>
+            <option value="info" selected>Info</option>
+            <option value="error">Error</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="gemini-api-key-input">Google Gemini API Key:</label>
+          <input
+            type="password"
+            id="gemini-api-key-input"
+            placeholder="Enter Gemini API key"
+          />
+        </div>
+        <div class="form-group">
+          <label for="remove-bg-api-key-input">Remove.bg API Key:</label>
+          <input
+            type="password"
+            id="remove-bg-api-key-input"
+            placeholder="Enter Remove.bg API key"
+          />
+        </div>
+        <div class="settings-buttons">
+          <button type="submit" class="arcade-button">Save</button>
+          <button id="btn-close-settings" class="arcade-button">Close</button>
+        </div>
       </div>
     </div>
     <audio id="bg-music" preload="auto"></audio>
@@ -479,10 +725,11 @@
       onerror="console.error('Failed to load renderer.js')"
     ></script>
     <script>
-      // Audio handling and intro message logic
       document.addEventListener("DOMContentLoaded", () => {
         try {
-          console.log("Initializing audio handling and intro message");
+          console.log(
+            "Initializing audio handling, intro message, and right sidebar"
+          );
           const musicFiles = [
             "music/1.wav",
             "music/2.mp3",
