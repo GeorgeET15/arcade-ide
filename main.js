@@ -262,22 +262,122 @@ ipcMain.handle("path:join", async (event, ...args) => {
 
 ipcMain.handle("dialog:openFolder", async () => {
   console.log("[main] IPC dialog:openFolder called");
-  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openDirectory"],
-    defaultPath: config.lastOpenFolder,
-  });
-  if (canceled || filePaths.length === 0) {
-    console.log("[main] dialog:openFolder canceled");
-    return { canceled: true };
+  try {
+    // Validate defaultPath
+    let defaultPath;
+    if (typeof config.lastOpenFolder === "string" && config.lastOpenFolder) {
+      defaultPath = config.lastOpenFolder;
+      console.log(
+        `[main] Using config.lastOpenFolder as defaultPath: ${defaultPath}`
+      );
+    } else {
+      try {
+        defaultPath = app.getPath("documents");
+        console.log(
+          `[main] Using documents path as defaultPath: ${defaultPath}`
+        );
+      } catch (error) {
+        console.warn(`[main] Failed to get documents path: ${error.message}`);
+        defaultPath = undefined;
+        console.log("[main] defaultPath set to undefined");
+      }
+    }
+
+    const dialogOptions = {
+      properties: ["openDirectory"],
+    };
+    if (defaultPath) {
+      dialogOptions.defaultPath = defaultPath;
+    }
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(
+      mainWindow,
+      dialogOptions
+    );
+    if (canceled || !filePaths || filePaths.length === 0) {
+      console.log("[main] dialog:openFolder canceled");
+      return { canceled: true, success: false };
+    }
+
+    const folderPath = filePaths[0];
+    console.log(`[main] dialog:openFolder selected folder: ${folderPath}`);
+
+    config.recentFolders = config.recentFolders || [];
+    config.recentFolders = [
+      ...new Set([folderPath, ...config.recentFolders]),
+    ].slice(0, 5);
+    config.lastOpenFolder = folderPath;
+    await saveConfig();
+    console.log(
+      `[main] Updated config: lastOpenFolder=${folderPath}, recentFolders=${config.recentFolders}`
+    );
+
+    return {
+      success: true,
+      folderPath,
+      canceled: false,
+    };
+  } catch (error) {
+    console.error(`[main] Error in dialog:openFolder: ${error.message}`);
+    return {
+      success: false,
+      error: error.message,
+      canceled: false,
+    };
   }
-  const folderPath = filePaths[0];
-  config.recentFolders = config.recentFolders || [];
-  config.recentFolders = [
-    ...new Set([folderPath, ...config.recentFolders]),
-  ].slice(0, 5);
-  saveConfig();
-  console.log(`[main] dialog:openFolder returning folderPath: ${folderPath}`);
-  return { canceled: false, folderPath, success: true };
+});
+
+ipcMain.handle("dialog:openFile", async () => {
+  console.log("[main] IPC dialog:openFile called");
+  try {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Supported Files",
+          extensions: ["c", "h", "makefile", "png", "wav"],
+        },
+        { name: "All Files", extensions: ["*"] },
+      ],
+      defaultPath: config.lastOpenFolder || app.getPath("documents"),
+    });
+
+    if (canceled || !filePaths || filePaths.length === 0) {
+      console.log("[main] dialog:openFile canceled");
+      return { canceled: true, success: false };
+    }
+
+    const filePath = filePaths[0];
+    let content = "";
+    const ext = path.extname(filePath).toLowerCase();
+
+    // Read content for text-based files
+    if ([".txt", ".c", ".h", ".makefile"].includes(ext)) {
+      try {
+        content = await fs.readFile(filePath, "utf-8");
+      } catch (readError) {
+        console.error(
+          `[main] Error reading file ${filePath}: ${readError.message}`
+        );
+        return { success: false, canceled: false, error: readError.message };
+      }
+    }
+
+    console.log(`[main] dialog:openFile returning filePath: ${filePath}`);
+    return {
+      success: true,
+      filePath,
+      content,
+      canceled: false,
+    };
+  } catch (error) {
+    console.error(`[main] Error in dialog:openFile: ${error.message}`);
+    return {
+      success: false,
+      canceled: false,
+      error: error.message,
+    };
+  }
 });
 
 ipcMain.handle("fs:readDir", async (event, folderPath) => {

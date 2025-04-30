@@ -153,31 +153,6 @@
         <div class="sidebar-content">
           <div class="sidebar-header">
             <span>Explorer</span>
-            <div class="sidebar-buttons">
-              <button
-                id="btn-open-folder"
-                title="Open Folder"
-                class="arcade-button-noborder"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="icon icon-tabler icons-tabler-outline icon-tabler-folder-open"
-                >
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                  <path
-                    d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"
-                  />
-                </svg>
-              </button>
-            </div>
           </div>
           <div class="recent-projects">
             <div class="recent-projects-header">
@@ -386,58 +361,11 @@
                   Arcade IDE
                 </h1>
                 <p>
-                  Welcome to Arcade IDE - A retro-inspired coding
-                  environment!<br />
                   - Open a file or folder to begin.<br />
                   - Use Ctrl+S to save, Ctrl+B to run.<br />
                   - Click the gear icon for settings.<br />
                   Version: 1.0
                 </p>
-                <div class="intro-buttons">
-                  <button id="btn-open-folder" class="arcade-button">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="icon icon-tabler icons-tabler-outline icon-tabler-folder-open"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path
-                        d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2"
-                      />
-                    </svg>
-                    Open Folder
-                  </button>
-                  <button id="btn-new-file" class="arcade-button">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="icon icon-tabler icons-tabler-outline icon-tabler-file-plus"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-                      <path
-                        d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"
-                      />
-                      <path d="M12 11l0 6" />
-                      <path d="M9 14l6 0" />
-                    </svg>
-                    New File
-                  </button>
-                </div>
               </div>
             </div>
             <div
@@ -456,11 +384,11 @@
           <div class="arcade-output" id="output-container">
             <div class="output-header">
               <h3>Output</h3>
-              <div class="output-buttons">
+              <div class="output-button-container">
                 <button
                   id="btn-clear-output"
                   title="Clear Output"
-                  class="arcade-button-noborder"
+                  class="output-buttons"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -485,7 +413,7 @@
                 <button
                   id="btn-toggle-output"
                   title="Collapse Output"
-                  class="arcade-button-noborder"
+                  class="output-buttons"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -510,7 +438,7 @@
         </div>
       </div>
       <div class="arcade-sidebar-right" id="sidebar-right">
-        <div class="sidebar-activity">
+        <div class="sidebar-right-activity">
           <button
             id="btn-toggle-sidebar-right"
             title="Arcade Magic"
@@ -526,25 +454,67 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-left-expand"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-sparkles"
             >
               <path stroke="none" d="M0 0h24v24H0z" fill="none" />
               <path
-                d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"
+                d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6z"
               />
-              <path d="M15 4v16" />
-              <path d="M10 14l-2 -2l2 -2" />
             </svg>
           </button>
         </div>
         <div class="sidebar-right-content">
           <div class="sidebar-header">
-            <span>Arcade Magic</span>
-            <div class="sidebar-buttons"></div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-wand"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M6 21l15 -15l-3 -3l-15 15l3 3" />
+              <path d="M15 6l3 3" />
+              <path
+                d="M9 3a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"
+              />
+              <path
+                d="M19 13a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"
+              />
+            </svg>
+            <span>Arcade Magic </span>
           </div>
           <div class="sprite-form">
             <form id="sprite-generate-form">
               <h2>Sprite Generator</h2>
+              <div class="sprite-preview-placeholder">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--secondary-foreground)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="icon icon-tabler icons-tabler-outline icon-tabler-photo"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M15 8h.01" />
+                  <path
+                    d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"
+                  />
+                  <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
+                  <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
+                </svg>
+                <span>Awaiting Sprite...</span>
+              </div>
               <div class="form-field">
                 <label for="subject">Sprite Subject:</label>
                 <input
@@ -616,29 +586,6 @@
               <button type="submit" class="form-button arcade-button">
                 Generate Sprite
               </button>
-              <div class="sprite-preview-placeholder">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--secondary-foreground)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="icon icon-tabler icons-tabler-outline icon-tabler-photo"
-                >
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                  <path d="M15 8h.01" />
-                  <path
-                    d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"
-                  />
-                  <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
-                  <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
-                </svg>
-                <span>Awaiting Sprite...</span>
-              </div>
             </form>
           </div>
         </div>
@@ -724,279 +671,10 @@
       onload="console.log('renderer.js loaded')"
       onerror="console.error('Failed to load renderer.js')"
     ></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        try {
-          console.log(
-            "Initializing audio handling, intro message, and right sidebar"
-          );
-          const musicFiles = [
-            "music/1.wav",
-            "music/2.mp3",
-            "music/3.mp3",
-            "music/4.mp3",
-            "music/5.mp3",
-            "music/6.mp3",
-          ];
-          const audio = document.getElementById("bg-music");
-          const headphonesBtn = document.getElementById("btn-headphones");
-          const musicPopup = document.getElementById("music-popup");
-          const musicPopupMessage = document.getElementById(
-            "music-popup-message"
-          );
-          const outputArea = document.getElementById("output-area");
-          const introMessage = document.getElementById("intro-message");
-          let isPlaying = false;
-          let lastClickTime = 0;
-          const doubleClickDelay = 300;
-          let currentSong = null;
-
-          const popupMessages = [
-            "Unleash your 8-bit genius with arcade.h! Let’s code a legend!",
-            "Pixel power activated! Build epic 2D games with arcade.h!",
-            "Retro beats fuel your arcade.h masterpiece! Code like a champ!",
-            "Arcade.h vibes on max! Craft a 2D game that rocks the arcade!",
-            "Game dev glory awaits! Power up arcade.h with retro flair!",
-            "Synthwave surge! Create pixel-perfect 2D worlds with arcade.h!",
-            "8-bit dreams ignited! Code your arcade.h classic now!",
-            "Retro coding mode: ON! Build a 2D epic with arcade.h!",
-          ];
-
-          console.log("Audio element:", audio ? "Found" : "Not found");
-          console.log(
-            "Headphones button:",
-            headphonesBtn ? "Found" : "Not found"
-          );
-          console.log("Music popup:", musicPopup ? "Found" : "Not found");
-          console.log(
-            "Music popup message:",
-            musicPopupMessage ? "Found" : "Not found"
-          );
-          console.log("Output area:", outputArea ? "Found" : "Not found");
-          console.log("Intro message:", introMessage ? "Found" : "Not found");
-
-          if (introMessage) {
-            const computedStyle = window.getComputedStyle(introMessage);
-            console.log(
-              "Intro message computed display:",
-              computedStyle.display
-            );
-            if (computedStyle.display === "none") {
-              console.warn(
-                "Intro message is hidden; check style.css for .intro-message or #intro-message"
-              );
-              if (outputArea) {
-                outputArea.textContent =
-                  "Warning: Intro message is hidden. Check CSS.";
-              }
-            }
-          } else {
-            console.error("Intro message element not found in DOM");
-            if (outputArea)
-              outputArea.textContent = "Error: Intro message not found";
-          }
-
-          if (!headphonesBtn) {
-            console.error(
-              "Cannot attach event listener: Headphones button not found"
-            );
-            if (outputArea)
-              outputArea.textContent = "Error: Audio setup failed";
-            return;
-          }
-
-          headphonesBtn.addEventListener("click", async (event) => {
-            const currentTime = new Date().getTime();
-            const timeSinceLastClick = currentTime - lastClickTime;
-
-            if (timeSinceLastClick < doubleClickDelay) {
-              console.log("Double-click detected, playing new song");
-              await playRandomSong(true);
-            } else {
-              console.log("Single click detected");
-              if (isPlaying) {
-                audio.pause();
-                isPlaying = false;
-                console.log("Audio paused");
-              } else {
-                if (!audio.src || !currentSong) {
-                  console.log("No audio source, playing new song");
-                  await playRandomSong();
-                } else {
-                  try {
-                    await audio.play();
-                    isPlaying = true;
-                    console.log("Resumed playback");
-                  } catch (error) {
-                    console.error("Playback resume failed:", error.message);
-                    if (outputArea) {
-                      outputArea.textContent = `Failed to resume audio: ${error.message}`;
-                    }
-                  }
-                }
-              }
-            }
-            lastClickTime = currentTime;
-          });
-          console.log("Click event listener attached to headphones button");
-
-          audio.addEventListener("play", async () => {
-            if (audio.src) {
-              console.log(`Saving last played song: ${audio.src}`);
-              await window.electronAPI.setSettings("lastSong", audio.src);
-            }
-          });
-
-          async function loadLastSong() {
-            const lastSong = await window.electronAPI.getSettings(
-              "lastSong",
-              null
-            );
-            if (lastSong && musicFiles.includes(lastSong)) {
-              console.log(`Loading last played song: ${lastSong}`);
-              audio.src = lastSong;
-              currentSong = lastSong;
-              try {
-                await audio.play();
-                isPlaying = true;
-              } catch (error) {
-                console.error(`Failed to play last song: ${error.message}`);
-              }
-            }
-          }
-
-          async function verifyMusicFiles() {
-            console.log("Verifying music files...");
-            const validFiles = [];
-            for (const file of musicFiles) {
-              try {
-                console.log(`Fetching: ${file}`);
-                const response = await fetch(file);
-                if (response.ok) {
-                  validFiles.push(file);
-                  console.log(`Found music file: ${file}`);
-                } else {
-                  console.warn(`Fetch failed for ${file}: ${response.status}`);
-                }
-              } catch (e) {
-                console.warn(`Error fetching ${file}:`, e.message);
-              }
-            }
-            if (validFiles.length === 0) {
-              console.error("No valid music files found");
-              if (outputArea) {
-                outputArea.textContent =
-                  "Error: No music files found in music/ directory";
-              }
-            } else {
-              console.log(`Found ${validFiles.length} valid music files`);
-            }
-            return validFiles;
-          }
-
-          function showMusicPopup() {
-            if (musicPopup && musicPopupMessage) {
-              console.log("Showing music popup");
-              const randomMessage =
-                popupMessages[Math.floor(Math.random() * popupMessages.length)];
-              musicPopupMessage.textContent = randomMessage;
-              musicPopup.style.display = "block";
-              musicPopup.style.opacity = "1";
-              setTimeout(() => {
-                musicPopup.style.opacity = "0";
-                setTimeout(() => {
-                  musicPopup.style.display = "none";
-                  console.log("Music popup hidden");
-                }, 500);
-              }, 1500);
-            } else {
-              console.error("Music popup or message element not found");
-            }
-          }
-
-          async function playRandomSong(forceNew = false) {
-            console.log("Attempting to play random song");
-            const validFiles = await verifyMusicFiles();
-            if (validFiles.length === 0) {
-              console.error("No valid files to play");
-              if (outputArea)
-                outputArea.textContent =
-                  "Error: No valid music files available";
-              return;
-            }
-            let selectedFile;
-            if (forceNew && validFiles.length > 1) {
-              const availableFiles = validFiles.filter(
-                (file) => file !== currentSong
-              );
-              selectedFile =
-                availableFiles[
-                  Math.floor(Math.random() * availableFiles.length)
-                ];
-            } else {
-              selectedFile =
-                validFiles[Math.floor(Math.random() * validFiles.length)];
-            }
-            console.log(`Selected file: ${selectedFile}`);
-            if (audio) {
-              audio.src = selectedFile;
-              currentSong = selectedFile;
-              try {
-                await audio.play();
-                console.log("Playback started");
-                isPlaying = true;
-                showMusicPopup();
-              } catch (error) {
-                console.error("Playback failed:", error.message);
-                isPlaying = false;
-                if (outputArea) {
-                  outputArea.textContent = `Failed to play audio: ${error.message}`;
-                }
-              }
-            } else {
-              console.error("Audio element not available for playback");
-              if (outputArea)
-                outputArea.textContent = "Error: Audio element not found";
-            }
-          }
-
-          loadLastSong();
-
-          if (audio) {
-            audio.addEventListener("error", () => {
-              console.error(
-                "Audio error:",
-                audio.error?.code,
-                audio.error?.message
-              );
-              if (outputArea) {
-                outputArea.textContent = `Audio error: ${
-                  audio.error?.message || "Unknown error"
-                }`;
-              }
-            });
-          } else {
-            console.error(
-              "Cannot attach error listener: Audio element not found"
-            );
-          }
-
-          document.addEventListener("securitypolicyviolation", (e) => {
-            console.error(
-              "CSP violation:",
-              e.violatedDirective,
-              e.blockedURI,
-              e.originalPolicy
-            );
-            if (outputArea) {
-              outputArea.textContent = `CSP violation: ${e.violatedDirective} blocked ${e.blockedURI}`;
-            }
-          });
-        } catch (error) {
-          console.error("Error in audio handling setup:", error);
-          if (outputArea) outputArea.textContent = `Error: ${error.message}`;
-        }
-      });
-    </script>
+    <script
+      src="./audioLoad.js"
+      onload="console.log('audioLoad.js loaded')"
+      onerror="console.error('Failed to load audioLoad.js')"
+    ></script>
   </body>
 </html>

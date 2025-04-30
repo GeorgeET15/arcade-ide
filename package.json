@@ -37,6 +37,7 @@
       "index.html",
       "style.css",
       "renderer.js",
+      "audioLoad,js",
       "icon.png",
       "lib/arcade.c",
       "lib/arcade.h",

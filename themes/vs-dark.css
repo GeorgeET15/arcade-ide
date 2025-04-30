@@ -45,7 +45,11 @@
 body.arcade-bg {
   font-family: var(--primary-font);
   color: var(--primary-foreground);
-  background: var(--primary-background);
+  background: linear-gradient(
+    180deg,
+    var(--primary-background) 0%,
+    #0b1c1f 50%
+  );
   display: flex;
   height: 100vh;
   overflow: hidden;
@@ -57,7 +61,7 @@ body.arcade-bg {
   height: 100%;
 }
 
-/* Sidebar */
+/* Left Sidebar */
 .arcade-sidebar {
   background: var(--sidebar-background);
   display: flex;
@@ -67,12 +71,13 @@ body.arcade-bg {
   flex-shrink: 0;
   transition: width var(--transition-ease);
   overflow: hidden;
+  order: 0; /* Left sidebar first */
 }
 
 .arcade-sidebar.collapsed {
   width: 48px;
 }
-/* Activity Bar (new section for VS Code-like icons) */
+
 .sidebar-activity {
   background: var(--primary-background);
   width: 48px;
@@ -86,7 +91,7 @@ body.arcade-bg {
   background: none;
   border: none;
   color: var(--secondary-foreground);
-  font-size: 24px; /* Larger icons like VS Code */
+  font-size: 24px;
   padding: 12px;
   cursor: pointer;
   transition: color var(--transition-ease), background var(--transition-ease);
@@ -94,15 +99,13 @@ body.arcade-bg {
 
 .sidebar-activity button:hover {
   color: var(--primary-foreground);
-  background: var(--tertiary-background);
 }
 
-/* Sidebar Content (Explorer, Recent Projects, etc.) */
 .sidebar-content {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  width: 202px; /* Remaining space */
+  width: 202px;
   background: var(--sidebar-background);
 }
 
@@ -153,13 +156,237 @@ body.arcade-bg {
   display: none;
 }
 
-.arcade-sidebar.collapsed .sidebar-buttons {
-  flex-direction: column;
-  align-items: center;
+/* Right Sidebar (Arcade Magic) */
+.arcade-sidebar-right {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  flex-shrink: 0;
+  width: 300px;
+  transition: width var(--transition-ease);
+  order: 2;
+  position: relative;
+  background: var(--sidebar-background);
 }
 
-.arcade-sidebar.collapsed .sidebar-buttons button:not(#btn-toggle-sidebar) {
+.arcade-sidebar-right.collapsed {
+  width: 48px;
+}
+
+.sidebar-right-activity {
+  background: var(--primary-background);
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-left: var(--border-style) var(--sidebar-border);
+  z-index: 1000;
+  order: 1;
+}
+
+.arcade-sidebar-right button {
+  background: none;
+  border: none;
+  color: var(--secondary-foreground);
+  font-size: 24px;
+  padding: 12px;
+  cursor: pointer;
+  transition: color var(--transition-ease), background var(--transition-ease);
+}
+
+.sidebar-right-activity button:hover {
+  color: var(--primary-foreground);
+}
+
+.sidebar-right-content {
+  flex-grow: 1;
+  width: 252px;
+  background: var(--sidebar-background);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-left: var(--border-style) var(--sidebar-border);
+  order: 0;
+  transition: opacity 0.1s ease;
+}
+
+.arcade-sidebar-right.collapsed .sidebar-right-content {
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.arcade-sidebar-right.collapsed .sidebar-right-content {
+  width: 0;
+}
+
+.sidebar-right-content .sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--sidebar-background);
+  border-bottom: var(--border-style) var(--sidebar-border);
+  height: 40px;
+}
+
+.sidebar-right-content .sidebar-header span {
+  font-family: var(--header-font);
+  font-size: 12px;
+  color: var(--primary-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-right-content .sidebar-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.sidebar-right-content .sidebar-buttons button {
+  background: none;
+  border: none;
+  color: var(--secondary-foreground);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color var(--transition-ease);
+}
+
+.sidebar-right-content .sidebar-buttons button:hover {
+  color: var(--primary-foreground);
+}
+
+/* Sprite Generation Form */
+.sprite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 15px;
+  font-family: var(--primary-font);
+  font-size: 12px;
+  color: var(--primary-foreground);
+  background: var(--secondary-background);
+  border-radius: var(--border-radius);
+}
+
+.sprite-form h2 {
+  font-family: var(--header-font);
+  font-size: 14px;
+  color: var(--primary-foreground);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.sprite-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sprite-form label {
+  font-family: var(--primary-font);
+  font-size: 12px;
+  color: var(--secondary-foreground);
+  margin-top: 10px;
+}
+
+.sprite-form input {
+  width: 100%;
+  padding: 8px;
+  background: var(--dialog-input-background);
+  border: 1px solid var(--secondary-foreground);
+  color: var(--primary-foreground);
+  font-family: var(--primary-font);
+  font-size: 12px;
+  border-radius: var(--border-radius);
+  transition: border-color var(--transition-ease);
+}
+
+.sprite-form input:focus {
+  outline: none;
+  border-color: var(--sidebar-border);
+}
+
+.sprite-form .form-button {
+  position: relative;
+  background: var(--accent-color);
+  border: none;
+  color: var(--primary-foreground);
+  padding: 10px;
+  font-family: var(--header-font);
+  font-size: 12px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  margin-top: 20px;
+  margin-left: 40px;
+  overflow: hidden;
+  z-index: 0;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.sprite-form .form-button::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 40%,
+    var(--highlight-color) 50%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  transform: rotate(25deg);
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.sprite-form .form-button:hover::before {
+  animation: beam-move 1.2s linear infinite;
+  opacity: 1;
+}
+
+@keyframes beam-move {
+  0% {
+    transform: translateX(-100%) rotate(25deg) scale(1);
+  }
+  50% {
+    transform: translateX(0%) rotate(25deg) scale(1.1);
+  }
+  100% {
+    transform: translateX(100%) rotate(25deg) scale(1);
+  }
+}
+
+.sprite-form .error-message {
+  color: var(--error-color);
+  font-size: 11px;
+  margin-top: 4px;
   display: none;
+}
+
+.sprite-form .error-message.show {
+  display: block;
+}
+
+.sprite-form .sprite-preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--tertiary-background);
+  border: 1px solid var(--secondary-foreground);
+  border-radius: var(--border-radius);
+}
+
+.sprite-form .sprite-preview-placeholder span {
+  font-family: var(--primary-font);
+  font-size: 12px;
+  color: var(--secondary-foreground);
 }
 
 /* File Tree */
@@ -345,6 +572,7 @@ body.arcade-bg {
   flex-grow: 1;
   height: 100%;
   overflow: hidden;
+  order: 1; /* Main content in the middle */
 }
 
 /* Toolbar */
@@ -415,7 +643,7 @@ body.arcade-bg {
 
 .arcade-button#btn-settings:hover,
 .arcade-button#btn-headphones:hover {
-  background: var(--tertiary-background);
+  background: var(--accent-color);
   border: none;
 }
 
@@ -447,7 +675,7 @@ body.arcade-bg {
   height: 100%;
   flex-shrink: 0;
   max-width: 200px;
-  border-right: var(--border-style) var(--sidebar-border);
+  border-right: 1px solid var(--accent-color);
   cursor: pointer;
   transition: all var(--transition-ease);
 }
@@ -455,11 +683,11 @@ body.arcade-bg {
 .tab.active {
   background: var(--tab-active-background);
   color: var(--primary-foreground);
-  border-top: 2px solid var(--highlight-color);
+  border-top: var(--border-style) var(--highlight-color);
 }
 
 .tab:hover {
-  background: var(--tertiary-background);
+  background: var(--accent-color);
 }
 
 .tab-name {
@@ -557,32 +785,29 @@ body.arcade-bg {
   height: 100%;
   justify-content: center;
   align-items: center;
-  background: var(--primary-background);
-  background: var(--primary-background);
-  z-index: 1000;
+  background: var(--editor-background);
+  z-index: 10;
 }
 
 .intro-content {
   text-align: center;
-  background: var(--secondary-background);
-  border: var(--border-style) var(--sidebar-border);
-  padding: 20px;
-  border-radius: var(--border-radius);
+  padding: 8px;
+  opacity: 0.4;
 }
 
 .intro-content h1 {
-  font-family: var(--header-font);
-  font-size: 24px;
-  color: var(--highlight-color);
-  margin-bottom: 10px;
+  font-family: var(--primary-font, monospace);
+  font-size: 22px;
+  color: var(--editor-linenum-foreground);
+  margin-bottom: 6px;
 }
 
 .intro-content p {
-  font-family: var(--primary-font);
+  font-family: var(--primary-font, monospace);
   font-size: 12px;
-  color: var(--primary-foreground);
-  margin-bottom: 15px;
-  line-height: 1.5;
+  color: var(--editor-linenum-foreground);
+  margin-bottom: 8px;
+  line-height: 1.3;
 }
 
 .preview-container {
@@ -642,11 +867,11 @@ body.arcade-bg {
   display: flex;
   flex-direction: column;
   background: var(--output-background);
-  border-top: var(--border-style) var(--sidebar-border);
   height: 200px;
   flex-shrink: 0;
   overflow: hidden;
   transition: height var(--transition-ease);
+  border-top: var(--border-style) var(--sidebar-border);
 }
 
 .arcade-output.collapsed {
@@ -658,7 +883,7 @@ body.arcade-bg {
   justify-content: space-between;
   align-items: center;
   padding: 0 10px;
-  background: #21262d; /* slightly lighter dark */
+  background: var(--primary-background);
   border-bottom: var(--border-style) var(--sidebar-border);
   height: 28px;
 }
@@ -670,21 +895,19 @@ body.arcade-bg {
   margin: 0;
 }
 
-.output-buttons {
+.output-button-container {
   display: flex;
   gap: 8px;
 }
 
-.output-buttons button {
+.output-buttons {
   background: none;
   border: none;
   color: var(--secondary-foreground);
-  font-size: 16px;
   cursor: pointer;
-  transition: color var(--transition-ease);
 }
 
-.output-buttons button:hover {
+.output-buttons:hover {
   color: var(--primary-foreground);
 }
 
@@ -695,7 +918,7 @@ body.arcade-bg {
   font-family: var(--primary-font);
   font-size: 12px;
   color: var(--primary-foreground);
-  background: var(--primary-background);
+  background: var(--sidebar-background);
 }
 
 /* Settings Dialog */
@@ -733,12 +956,13 @@ body.arcade-bg {
 }
 
 .settings-content select,
+#settings-dialog input[type="password"],
 .settings-content input[type="text"],
 .settings-content input[type="number"] {
   width: 100%;
   padding: 5px;
   background: var(--dialog-input-background);
-  border: var(--border-style) var(--sidebar-border);
+  border: 1px solid var(--sidebar-border);
   color: var(--primary-foreground);
   font-family: var(--primary-font);
   font-size: 12px;
@@ -766,36 +990,31 @@ body.arcade-bg {
   z-index: 1000;
   border-radius: var(--border-radius);
 }
-
 .custom-dialog h2 {
   margin: 0 0 10px;
   font-size: 15px;
   font-family: var(--header-font);
   color: var(--highlight-color);
 }
-
 .custom-dialog p {
   margin: 0 0 15px;
   font-size: 14px;
 }
-
 .custom-dialog input {
   width: 100%;
   padding: 8px;
   margin-bottom: 15px;
   background: var(--dialog-input-background);
-  border: var(--border-style) var(--secondary-foreground);
+  border: 1px solid var(--secondary-foreground);
   color: var(--primary-foreground);
   font-size: 14px;
   font-family: var(--primary-font);
 }
-
 .custom-dialog .dialog-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
-
 .custom-dialog button {
   padding: 8px 16px;
   border: none;
@@ -803,17 +1022,14 @@ body.arcade-bg {
   font-size: 14px;
   font-family: var(--primary-font);
 }
-
 .custom-dialog .ok-button {
   background: var(--accent-color);
   color: var(--primary-foreground);
 }
-
 .custom-dialog .cancel-button {
   background: var(--secondary-foreground);
   color: var(--primary-background);
 }
-
 .custom-dialog .cancel-button:hover {
   background: var(--tertiary-background);
 }
@@ -825,7 +1041,7 @@ body.arcade-bg {
   top: 60px;
   right: 20px;
   background: var(--dialog-background);
-  border: var(--border-style) var(--accent-color);
+  border: var(--border-style) var(--sidebar-border);
   padding: 10px 20px;
   border-radius: var(--border-radius);
   z-index: 2000;
