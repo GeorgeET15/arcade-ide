@@ -1731,7 +1731,7 @@ async function handleGenerateSprite(event) {
               <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
               <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
             </svg>
-            <span>Awaiting Sprite...</span>
+            <span>Generate to preview here</span>
           </div>
         `;
       }
@@ -1771,7 +1771,7 @@ async function handleGenerateSprite(event) {
             <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
             <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
           </svg>
-          <span>Awaiting Sprite...</span>
+          <span>Generate to preview here</span>
         </div>
       `;
     }
