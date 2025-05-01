@@ -21,10 +21,6 @@ console.log(`Node module paths: ${module.paths.join(", ")}`);
 
 const execPromise = util.promisify(exec);
 
-const ai = new GoogleGenAI({
-  apiKey: "AIzaSyD61XXk7aplSLCryA5qdj8znYP58duMLm4", // Hardcoded Google API key
-});
-
 // Custom JSON storage
 const configPath = path.join(app.getPath("userData"), "arcade-ide-config.json");
 let config = { windowBounds: { width: 1100, height: 750 } };
