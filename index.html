@@ -437,13 +437,9 @@
           </div>
         </div>
       </div>
-      <div class="arcade-sidebar-right" id="sidebar-right">
+      <div class="arcade-sidebar-right collapsed" id="sidebar-right">
         <div class="sidebar-right-activity">
-          <button
-            id="btn-toggle-sidebar-right"
-            title="Arcade Magic"
-            class="active"
-          >
+          <button id="btn-toggle-sidebar-right" title="Arcade Magic" class="">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="32"
@@ -493,27 +489,32 @@
             <form id="sprite-generate-form">
               <h2>Sprite Generator</h2>
               <div class="sprite-preview-placeholder">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--secondary-foreground)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="icon icon-tabler icons-tabler-outline icon-tabler-photo"
-                >
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                  <path d="M15 8h.01" />
-                  <path
-                    d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"
-                  />
-                  <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
-                  <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
-                </svg>
-                <span>Awaiting Sprite...</span>
+                <div class="placeholder-content">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--secondary-foreground)"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="icon icon-tabler icons-tabler-outline icon-tabler-photo"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M15 8h.01" />
+                    <path
+                      d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"
+                    />
+                    <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
+                    <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
+                  </svg>
+                  <span>Generate to preview here</span>
+                </div>
+                <div class="loading-content" style="display: none">
+                  <span>Generating Sprite</span>
+                </div>
               </div>
               <div class="form-field">
                 <label for="subject">Sprite Subject:</label>
@@ -543,13 +544,11 @@
                 />
               </div>
               <div class="form-field">
-                <label for="color-count">Color Count:</label>
+                <label for="hex-colors">Hex Color Codes:</label>
                 <input
-                  type="number"
-                  id="color-count"
-                  min="1"
-                  max="256"
-                  placeholder="e.g., 8, 16"
+                  type="text"
+                  id="hex-colors"
+                  placeholder="e.g., #FF0000, #00FF00, #0000FF"
                   required
                 />
               </div>

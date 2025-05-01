@@ -135,6 +135,7 @@ console.log("[renderer] Renderer script loaded");
             "editor.selectionBackground": "#00cc9950",
           },
         });
+
         monaco.editor.defineTheme("github-dark", {
           base: "vs-dark",
           inherit: true,
@@ -199,6 +200,36 @@ console.log("[renderer] Renderer script loaded");
         );
         console.log(`[renderer] Restoring theme: ${selectedTheme}`);
         await applyTheme(selectedTheme);
+
+        // Load recent folder if available
+        try {
+          const recentFolders = await window.electronAPI.getSettings(
+            "recentFolders",
+            []
+          );
+          if (recentFolders.length > 0) {
+            console.log("[renderer] Loading recent folder:", recentFolders[0]);
+            await loadAndDisplayFolder(recentFolders[0]);
+            console.log(
+              "[renderer] After auto-load, currentFolderPath:",
+              currentFolderPath
+            );
+            if (!currentFolderPath) {
+              console.error(
+                "[renderer] Failed to set currentFolderPath during auto-load"
+              );
+              outputArea.textContent = "Error: Failed to load recent folder.";
+            }
+          } else {
+            console.log("[renderer] No recent folders found to auto-load");
+          }
+        } catch (error) {
+          console.error(
+            "[renderer] Failed to load recent folder:",
+            error.message
+          );
+          outputArea.textContent = `Error loading recent folder: ${error.message}`;
+        }
 
         await loadRecentProjects();
 
@@ -306,6 +337,7 @@ async function closeCurrentFolder() {
     closeFolderButton.disabled = true;
     outputArea.textContent = "Folder closed.";
     showToast("Folder closed");
+    updateFolderDisplayName();
   } catch (error) {
     console.error(`[renderer] Error closing folder: ${error.message}`);
     outputArea.textContent = `Error closing folder: ${error.message}`;
@@ -849,6 +881,8 @@ async function handleNewFolder(targetFolder = currentFolderPath) {
 async function handleOpenFolder() {
   if (!window.electronAPI) {
     outputArea.textContent = "Error: Electron API not available.";
+    console.error("[renderer] Electron API not available");
+    showToast("Electron API not available");
     return;
   }
   outputArea.textContent = "Opening folder dialog...";
@@ -857,15 +891,36 @@ async function handleOpenFolder() {
     const result = await window.electronAPI.openFolder();
     console.log("[renderer] openFolder result:", result);
     if (!result.canceled && result.folderPath && result.success) {
-      await window.electronAPI.setSettings("lastOpenFolder", result.folderPath);
-      console.log(`[renderer] Set lastOpenFolder to ${result.folderPath}`);
+      console.log(`[renderer] Folder selected: ${result.folderPath}`);
       await loadAndDisplayFolder(result.folderPath);
-      outputArea.textContent = `Opened: ${getBaseName(result.folderPath)}`;
       console.log(
-        "[renderer] currentFolderPath after open:",
+        "[renderer] After loadAndDisplayFolder, currentFolderPath:",
         currentFolderPath
       );
+      if (!currentFolderPath) {
+        outputArea.textContent = "Error: Failed to set current folder.";
+        console.error(
+          "[renderer] currentFolderPath is null after loading folder"
+        );
+        showToast("Failed to set current folder");
+        return;
+      }
+      outputArea.textContent = `Opened: ${getBaseName(result.folderPath)}`;
       showToast(`Opened ${getBaseName(result.folderPath)}`);
+      await window.electronAPI.setSettings("lastOpenFolder", result.folderPath);
+      console.log(`[renderer] Set lastOpenFolder to ${result.folderPath}`);
+      const recentFolders = await window.electronAPI.getSettings(
+        "recentFolders",
+        []
+      );
+      if (!recentFolders.includes(result.folderPath)) {
+        recentFolders.unshift(result.folderPath);
+        await window.electronAPI.setSettings(
+          "recentFolders",
+          recentFolders.slice(0, 5)
+        );
+        console.log("[renderer] Updated recentFolders:", recentFolders);
+      }
     } else if (result.error) {
       outputArea.textContent = `Error: ${result.error}`;
       console.error("[renderer] openFolder error:", result.error);
@@ -884,15 +939,16 @@ async function handleOpenFolder() {
 async function loadAndDisplayFolder(folderPath) {
   if (!window.electronAPI) {
     outputArea.textContent = "Error: Electron API not available.";
+    console.error("[renderer] Electron API not available");
     return;
   }
   console.log(`[renderer] Loading folder: ${folderPath}`);
   try {
+    currentFolderPath = folderPath; // Set early
+    console.log("[renderer] Set currentFolderPath:", currentFolderPath);
     const result = await window.electronAPI.readDir(folderPath);
     console.log(`[renderer] readDir result for ${folderPath}:`, result);
     if (result.success && result.files) {
-      currentFolderPath = folderPath; // Set currentFolderPath before updating UI
-      console.log("[renderer] Set currentFolderPath:", currentFolderPath);
       fileTreeElement.innerHTML = "";
       await Promise.all(
         result.files.map((file) => addFileToTree(file, folderPath, 0))
@@ -904,6 +960,7 @@ async function loadAndDisplayFolder(folderPath) {
       newFolderButton.disabled = false;
       closeFolderButton.disabled = false;
       await loadRecentProjects();
+      updateFolderDisplayName(); // Update UI
     } else {
       outputArea.textContent = `Error: ${result.error || "No files found"}`;
       console.error(
@@ -911,22 +968,28 @@ async function loadAndDisplayFolder(folderPath) {
           result.error || "No files found"
         }`
       );
+      if (result.error && result.error.includes("ENOENT")) {
+        currentFolderPath = null;
+        newFileInFolderButton.disabled = true;
+        newFolderButton.disabled = true;
+        closeFolderButton.disabled = true;
+        fileTreeElement.innerHTML =
+          '<li class="placeholder">Open a folder to see files</li>';
+        updateFolderDisplayName();
+      }
+    }
+  } catch (error) {
+    outputArea.textContent = `Error: ${error.message}`;
+    console.error(`[renderer] Error in loadAndDisplayFolder: ${error.message}`);
+    if (error.message.includes("ENOENT")) {
       currentFolderPath = null;
       newFileInFolderButton.disabled = true;
       newFolderButton.disabled = true;
       closeFolderButton.disabled = true;
       fileTreeElement.innerHTML =
         '<li class="placeholder">Open a folder to see files</li>';
+      updateFolderDisplayName();
     }
-  } catch (error) {
-    outputArea.textContent = `Error: ${error.message}`;
-    console.error(`[renderer] Error in loadAndDisplayFolder: ${error.message}`);
-    currentFolderPath = null;
-    newFileInFolderButton.disabled = true;
-    newFolderButton.disabled = true;
-    closeFolderButton.disabled = true;
-    fileTreeElement.innerHTML =
-      '<li class="placeholder">Open a folder to see files</li>';
   }
   console.log("[renderer] currentFolderPath after load:", currentFolderPath);
 }
@@ -1220,7 +1283,6 @@ function toggleRightSidebar(force = false) {
     window.electronAPI.setSettings("rightSidebarCollapsed", false);
     console.log("[renderer] Right sidebar expanded");
   }
-  sidebarRight.offsetHeight; // Trigger reflow
 }
 
 function toggleOutput(force = false) {
@@ -1288,6 +1350,19 @@ async function applyTheme(themePath) {
   if (editor) {
     monaco.editor.setTheme(monacoTheme);
     console.log(`[renderer] Monaco editor theme set to: ${monacoTheme}`);
+  }
+}
+
+function updateFolderDisplayName() {
+  const folderNameElement = document.getElementById("current-folder-name");
+  if (folderNameElement) {
+    folderNameElement.textContent = currentFolderPath
+      ? getBaseName(currentFolderPath)
+      : "No folder open";
+    console.log(
+      "[renderer] Updated folder display name:",
+      folderNameElement.textContent
+    );
   }
 }
 
@@ -1455,37 +1530,19 @@ async function handleGenerateSprite(event) {
     return;
   }
 
-  // Check if file tree indicates an open folder
-  if (
-    !currentFolderPath &&
-    fileTreeElement.children.length > 0 &&
-    !fileTreeElement.querySelector(".placeholder")
-  ) {
-    console.warn(
-      "[renderer] currentFolderPath is null but file tree is populated, attempting to recover"
-    );
-    // Attempt to recover by checking lastOpenFolder
-    try {
-      const lastFolder = await window.electronAPI.getSettings(
-        "lastOpenFolder",
-        null
-      );
-      if (lastFolder) {
-        console.log("[renderer] Recovering with lastOpenFolder:", lastFolder);
-        await loadAndDisplayFolder(lastFolder);
-      }
-    } catch (error) {
-      console.error("[renderer] Failed to recover folder:", error.message);
-    }
-  }
-
   if (!currentFolderPath) {
     outputArea.textContent = "No folder open. Please open a folder first.";
+    console.error(
+      "[renderer] Sprite generation failed: currentFolderPath is null"
+    );
     showToast("Open a folder to generate sprites");
     return;
   }
 
   const errorMessage = spriteGenerateForm.querySelector(".error-message");
+  const previewPlaceholder = spriteGenerateForm.querySelector(
+    ".sprite-preview-placeholder"
+  );
   if (errorMessage) {
     errorMessage.classList.remove("show");
     errorMessage.textContent = "";
@@ -1495,7 +1552,7 @@ async function handleGenerateSprite(event) {
     subject: spriteGenerateForm.querySelector("#subject").value.trim(),
     viewAngle: spriteGenerateForm.querySelector("#view-angle").value.trim(),
     gameGenre: spriteGenerateForm.querySelector("#game-genre").value.trim(),
-    colorCount: spriteGenerateForm.querySelector("#color-count").value.trim(),
+    hexColors: spriteGenerateForm.querySelector("#hex-colors").value.trim(),
     pixelSize: spriteGenerateForm.querySelector("#pixel-size").value.trim(),
     artAesthetic: spriteGenerateForm
       .querySelector("#art-aesthetic")
@@ -1503,7 +1560,7 @@ async function handleGenerateSprite(event) {
     imageName: spriteGenerateForm.querySelector("#image-name").value.trim(),
   };
 
-  // Basic validation
+  // Validate required fields
   for (const [key, value] of Object.entries(spriteData)) {
     if (!value) {
       const errorText = `Please fill in the ${key} field.`;
@@ -1517,7 +1574,36 @@ async function handleGenerateSprite(event) {
     }
   }
 
-  // Validate imageName
+  // Validate hex colors
+  const hexColorRegex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+  const colorArray = spriteData.hexColors
+    .split(",")
+    .map((color) => color.trim())
+    .filter((color) => color);
+  if (colorArray.length === 0) {
+    const errorText = "Please provide at least one hex color code.";
+    if (errorMessage) {
+      errorMessage.textContent = errorText;
+      errorMessage.classList.add("show");
+    }
+    outputArea.textContent = "Error: No hex color codes provided";
+    showToast("No hex color codes provided");
+    return;
+  }
+  for (const color of colorArray) {
+    if (!hexColorRegex.test(color)) {
+      const errorText = `Invalid hex color code: ${color}. Use format #RRGGBB or #RGB.`;
+      if (errorMessage) {
+        errorMessage.textContent = errorText;
+        errorMessage.classList.add("show");
+      }
+      outputArea.textContent = `Error: Invalid hex color: ${color}`;
+      showToast(`Invalid hex color: ${color}`);
+      return;
+    }
+  }
+
+  // Validate image name
   if (!/^[a-zA-Z0-9_-]+$/.test(spriteData.imageName)) {
     const errorText =
       "Image name must contain only letters, numbers, underscores, or hyphens.";
@@ -1530,10 +1616,45 @@ async function handleGenerateSprite(event) {
     return;
   }
 
+  // Clear the preview placeholder completely before starting
+  if (previewPlaceholder) {
+    console.log("[renderer] Clearing sprite-preview-placeholder");
+    previewPlaceholder.innerHTML = ""; // Remove all children (image, placeholder, etc.)
+  }
+
+  // Show loading animation
+  if (previewPlaceholder) {
+    console.log(
+      "[renderer] Adding loading class to sprite-preview-placeholder"
+    );
+    previewPlaceholder.innerHTML = `
+      <div class="loading-content">
+        <span class="loading-text">Generating Sprite</span>
+        <svg class="loading-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-sparkles">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6z" />
+        </svg>
+      </div>
+    `; // Add loading content with classes
+    previewPlaceholder.classList.add("loading");
+    console.log(
+      "[renderer] Loader display style:",
+      window.getComputedStyle(
+        previewPlaceholder.querySelector(".loading-content")
+      ).display
+    );
+  }
   outputArea.textContent = `Generating sprite: ${spriteData.imageName}.png...`;
-  console.log("[renderer] Generating sprite with data:", spriteData);
+  console.log("[renderer] Generating sprite with data:", {
+    ...spriteData,
+    hexColors: colorArray,
+  });
+
   try {
-    const result = await window.electronAPI.generateSprite(spriteData);
+    const result = await window.electronAPI.generateSprite({
+      ...spriteData,
+      hexColors: colorArray,
+    });
     console.log("[renderer] generateSprite result:", result);
     if (result.success) {
       outputArea.textContent = `Generated: ${getBaseName(result.filePath)}`;
@@ -1542,8 +1663,18 @@ async function handleGenerateSprite(event) {
         console.warn(`[renderer] Sprite generation warning: ${result.warning}`);
         outputArea.textContent += `\nWarning: ${result.warning}`;
       }
-
-      // Refresh file tree and expand assets/sprites folders
+      // Update preview with generated sprite
+      if (previewPlaceholder) {
+        console.log(
+          "[renderer] Removing loading class from sprite-preview-placeholder"
+        );
+        previewPlaceholder.classList.remove("loading");
+        previewPlaceholder.innerHTML = ""; // Clear loading content
+        const img = document.createElement("img");
+        img.src = `file://${result.filePath}`;
+        img.alt = spriteData.imageName;
+        previewPlaceholder.appendChild(img); // CSS will handle sizing and scaling
+      }
       await loadAndDisplayFolder(currentFolderPath);
       const assetsPath = await window.electronAPI.pathJoin(
         currentFolderPath,
@@ -1565,8 +1696,6 @@ async function handleGenerateSprite(event) {
       if (spritesLi && !spritesLi.classList.contains("expanded")) {
         await toggleFolder(spritesLi, spritesPath, 2);
       }
-
-      // Open the sprite as a preview tab
       openOrFocusTab(result.filePath, "", true, "image");
     } else {
       const errorText = result.error || "Failed to generate sprite";
@@ -1576,6 +1705,36 @@ async function handleGenerateSprite(event) {
       }
       outputArea.textContent = `Error: ${errorText}`;
       showToast("Failed to generate sprite");
+      // Reset to placeholder on error
+      if (previewPlaceholder) {
+        console.log(
+          "[renderer] Removing loading class from sprite-preview-placeholder (error)"
+        );
+        previewPlaceholder.classList.remove("loading");
+        previewPlaceholder.innerHTML = `
+          <div class="placeholder-content">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--secondary-foreground)"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-photo"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M15 8h.01" />
+              <path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z" />
+              <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
+              <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
+            </svg>
+            <span>Awaiting Sprite...</span>
+          </div>
+        `;
+      }
     }
   } catch (error) {
     const errorText = error.message || "Failed to generate sprite";
@@ -1586,5 +1745,35 @@ async function handleGenerateSprite(event) {
     outputArea.textContent = `Error: ${errorText}`;
     showToast("Failed to generate sprite");
     console.error(`[renderer] Error generating sprite: ${error.message}`);
+    // Reset to placeholder on error
+    if (previewPlaceholder) {
+      console.log(
+        "[renderer] Removing loading class from sprite-preview-placeholder (exception)"
+      );
+      previewPlaceholder.classList.remove("loading");
+      previewPlaceholder.innerHTML = `
+        <div class="placeholder-content">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--secondary-foreground)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="icon icon-tabler icons-tabler-outline icon-tabler-photo"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M15 8h.01" />
+            <path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z" />
+            <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
+            <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />
+          </svg>
+          <span>Awaiting Sprite...</span>
+        </div>
+      `;
+    }
   }
 }

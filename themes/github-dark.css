@@ -72,7 +72,7 @@ body.arcade-bg {
   flex-shrink: 0;
   transition: width var(--transition-ease);
   overflow: hidden;
-  order: 0; /* Left sidebar first */
+  order: 0;
 }
 
 .arcade-sidebar.collapsed {
@@ -304,7 +304,7 @@ body.arcade-bg {
 
 .sprite-form input:focus {
   outline: none;
-  border-color: var(--sidebar-border);
+  border-color: var(--accent-color);
 }
 
 .sprite-form .form-button {
@@ -372,22 +372,111 @@ body.arcade-bg {
   display: block;
 }
 
-.sprite-form .sprite-preview-placeholder {
+.sprite-preview-placeholder {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 10px;
+  justify-content: center;
+  height: 150px;
+  margin-bottom: 1rem;
   background: var(--tertiary-background);
   border: 1px solid var(--secondary-foreground);
   border-radius: var(--border-radius);
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  overflow: hidden;
 }
 
-.sprite-form .sprite-preview-placeholder span {
-  font-family: var(--primary-font);
-  font-size: 12px;
-  color: var(--secondary-foreground);
+.placeholder-content,
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: fade-pulse 2s ease-in-out infinite;
+  text-align: center;
+}
+
+.sprite-preview-placeholder.loading .placeholder-content {
+  display: none;
+}
+
+.sprite-preview-placeholder.loading .loading-content {
+  display: flex;
+}
+
+.sprite-preview-placeholder.loading::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 40%,
+    var(--secondary-foreground) 50%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  transform: rotate(25deg);
+  z-index: 1;
+  opacity: 1;
+  animation: beam-move 1.2s linear infinite;
+  pointer-events: none;
+}
+
+.sprite-preview-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.loading-text {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.loading-icon {
+  animation: pulse-text 1.5s ease-in-out infinite;
+}
+
+@keyframes beam-move {
+  0% {
+    transform: translateX(-100%) rotate(25deg) scale(1);
+  }
+  50% {
+    transform: translateX(0%) rotate(25deg) scale(1.1);
+  }
+  100% {
+    transform: translateX(100%) rotate(25deg) scale(1);
+  }
+}
+
+@keyframes fade-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-text {
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
 }
 
 /* File Tree */
@@ -573,7 +662,7 @@ body.arcade-bg {
   flex-grow: 1;
   height: 100%;
   overflow: hidden;
-  order: 1; /* Main content in the middle */
+  order: 1;
 }
 
 /* Toolbar */
@@ -684,7 +773,7 @@ body.arcade-bg {
 .tab.active {
   background: var(--tab-active-background);
   color: var(--primary-foreground);
-  border-top: var(--border-style) var(--highlight-color);
+  border-top: var(--border-style) var(--sidebar-border);
 }
 
 .tab:hover {
@@ -868,11 +957,11 @@ body.arcade-bg {
   display: flex;
   flex-direction: column;
   background: var(--output-background);
+  border-top: var(--border-style) var(--sidebar-border);
   height: 200px;
   flex-shrink: 0;
   overflow: hidden;
   transition: height var(--transition-ease);
-  border-top: var(--border-style) var(--sidebar-border);
 }
 
 .arcade-output.collapsed {
@@ -984,7 +1073,7 @@ body.arcade-bg {
   background: var(--dialog-background);
   color: var(--primary-foreground);
   padding: 20px;
-  border: var(--border-style) var(--sidebar-border);
+  border: var(--border-style) var(--accent-color);
   max-width: 400px;
   width: 90%;
   font-family: var(--primary-font);
@@ -1042,7 +1131,7 @@ body.arcade-bg {
   top: 60px;
   right: 20px;
   background: var(--dialog-background);
-  border: var(--border-style) var(--sidebar-border);
+  border: var(--border-style) var(--accent-color);
   padding: 10px 20px;
   border-radius: var(--border-radius);
   z-index: 2000;

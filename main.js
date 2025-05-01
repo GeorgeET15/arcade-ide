@@ -917,17 +917,25 @@ ipcMain.handle("generateSprite", async (event, spriteData) => {
       };
     }
 
-    // Generate prompt
+    // Generate prompt with hex colors
     const prompt = `
-      A pixel art sprite of a ${spriteData.subject} viewed from a ${spriteData.viewAngle} perspective, designed for a ${spriteData.gameGenre} game. The sprite has a fully transparent background (no scenery, patterns, or artifacts, only the ${spriteData.subject}). The sprite is saved as a transparent .png file.
+      A pixel art sprite of a ${spriteData.subject} viewed from a ${
+      spriteData.viewAngle
+    } perspective, designed for a ${
+      spriteData.gameGenre
+    } game. The sprite has a fully transparent background (no scenery, patterns, or artifacts, only the ${
+      spriteData.subject
+    }). The sprite is saved as a transparent .png file.
       
       Design Style:
       - Pixel art with distinct, clean pixels
       - ${spriteData.artAesthetic} aesthetic
-      - Limited color palette (${spriteData.colorCount} colors maximum)
+      - Use exactly these hex color codes: ${spriteData.hexColors.join(", ")}
       - Size: ${spriteData.pixelSize}
       - Clear, symmetrical, or balanced design as appropriate for the subject
-      - Includes defining features relevant to the ${spriteData.subject} (e.g., wings for a dragon, weapon for a character)
+      - Includes defining features relevant to the ${
+        spriteData.subject
+      } (e.g., wings for a dragon, weapon for a character)
       
       Goal:
       The sprite is optimized for use in a 2D game engine like Godot, Unity, or Phaser, with no background elements.
