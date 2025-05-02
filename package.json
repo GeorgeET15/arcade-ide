@@ -15,7 +15,7 @@
     "name": "GeorgeET15",
     "email": "georgeet15@example.com"
   },
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "electron": "^33.0.2",
     "electron-builder": "^25.1.8"
@@ -39,6 +39,7 @@
       "renderer.js",
       "audioLoad.js",
       "icon.png",
+      "icon.ico",
       "lib/arcade.c",
       "lib/arcade.h",
       "lib/stb_image.h",
@@ -47,6 +48,7 @@
       "music/**/*",
       "themes/**/*",
       "completions/**/*",
+      "CONTRIBUTING.md",
       "node_modules/monaco-editor/min/**/*",
       "node_modules/@fortawesome/fontawesome-free/**/*"
     ],
