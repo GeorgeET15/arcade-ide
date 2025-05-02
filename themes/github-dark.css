@@ -490,14 +490,39 @@ body.arcade-bg {
   border-right: var(--border-style) var(--sidebar-border);
 }
 
+#file-tree::-webkit-scrollbar {
+  width: 4px;
+}
+
+#file-tree::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#file-tree::-webkit-scrollbar-thumb {
+  background: var(--secondary-foreground);
+  opacity: 0.3;
+  transition: opacity var(--transition-ease);
+}
+
+#file-tree::-webkit-scrollbar-thumb:hover {
+  opacity: 0.7;
+}
+
+#file-tree {
+  scrollbar-width: thin;
+  scrollbar-color: var(--secondary-foreground) transparent;
+}
+
 #file-tree li {
   display: flex;
   align-items: center;
   padding: 4px 0 4px 10px;
   cursor: pointer;
-  transition: background var(--transition-ease);
+  transition: opacity var(--transition-ease), border-left var(--transition-ease);
   color: var(--primary-foreground);
   line-height: 1.5;
+  opacity: 0.9;
+  pointer-events: auto;
 }
 
 #file-tree li.folder {
@@ -506,13 +531,15 @@ body.arcade-bg {
   padding: 4px 0;
 }
 
-#file-tree li:hover {
+#file-tree li .file-content:hover {
   background: var(--tertiary-background);
+  opacity: 1;
 }
 
 #file-tree li.selected {
-  background: rgba(var(--accent-color-rgb, 59, 76, 202), 0.2);
-  border-left: 3px solid var(--highlight-color);
+  background: var(--tertiary-background);
+  border-left: 1px solid var(--highlight-color);
+  opacity: 1;
 }
 
 #file-tree li.placeholder {
@@ -533,7 +560,7 @@ body.arcade-bg {
 
 .file-icon {
   margin: 0 6px;
-  font-size: 14px;
+  font-size: 15px;
   width: 16px;
   height: 16px;
   text-align: center;
@@ -542,26 +569,15 @@ body.arcade-bg {
 }
 
 #file-tree .folder > ul {
-  display: none !important;
+  display: none;
   margin: 0;
   padding: 0;
   list-style: none;
+  width: 100%;
 }
 
 #file-tree .folder.expanded > ul {
-  display: block !important;
-  visibility: visible !important;
-  height: auto !important;
-  min-height: 20px;
-  overflow: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-}
-
-#file-tree .folder > ul > li {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+  display: block;
 }
 
 .toggle {
@@ -572,7 +588,11 @@ body.arcade-bg {
   text-align: center;
 }
 
-.folder.expanded .toggle i.fa-chevron-right {
+#file-tree .folder .toggle svg {
+  transition: transform var(--transition-ease);
+}
+
+#file-tree .folder.expanded > .file-content > .toggle svg {
   transform: rotate(90deg);
 }
 
@@ -580,28 +600,23 @@ body.arcade-bg {
   display: flex;
   align-items: center;
   width: 100%;
+  height: 25px;
+  transition: background var(--transition-ease), opacity var(--transition-ease);
 }
 
 .file-name {
   margin-left: 5px;
 }
 
-#file-tree li.folder > .folder-header > .file-name {
+#file-tree li.folder > .file-content > .file-name {
   font-weight: 500;
   color: var(--primary-foreground);
-}
-
-.folder-header {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding-left: calc(var(--depth, 0) * 10px + 10px);
 }
 
 #file-tree ul {
   list-style: none;
   margin: 0;
-  padding-left: calc(var(--depth, 0) * 10px + 10px);
+  padding-left: 10px;
   width: 100%;
 }
 

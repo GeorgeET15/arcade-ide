@@ -158,7 +158,7 @@ async function createWindow() {
     try {
       await mainWindow.loadFile(indexPath);
       console.log("[main] index.html loaded successfully");
-      mainWindow.webContents.openDevTools();
+      //mainWindow.webContents.openDevTools();
     } catch (loadError) {
       console.error(`[main] Failed to load index.html: ${loadError.message}`);
       dialog.showErrorBox(

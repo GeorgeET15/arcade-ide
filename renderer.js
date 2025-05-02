@@ -951,7 +951,9 @@ async function loadAndDisplayFolder(folderPath) {
     if (result.success && result.files) {
       fileTreeElement.innerHTML = "";
       await Promise.all(
-        result.files.map((file) => addFileToTree(file, folderPath, 0))
+        result.files.map(
+          (file) => addFileToTree(file, folderPath, 0, fileTreeElement) // Pass fileTreeElement for root level
+        )
       );
       console.log(
         `[renderer] File tree populated for ${folderPath}, HTML length: ${fileTreeElement.innerHTML.length}`
@@ -960,7 +962,7 @@ async function loadAndDisplayFolder(folderPath) {
       newFolderButton.disabled = false;
       closeFolderButton.disabled = false;
       await loadRecentProjects();
-      updateFolderDisplayName(); // Update UI
+      updateFolderDisplayName();
     } else {
       outputArea.textContent = `Error: ${result.error || "No files found"}`;
       console.error(
@@ -994,74 +996,7 @@ async function loadAndDisplayFolder(folderPath) {
   console.log("[renderer] currentFolderPath after load:", currentFolderPath);
 }
 
-async function toggleFolder(li, folderPath, level) {
-  console.log(`[renderer] Toggle clicked for folder: ${folderPath}`);
-  const isExpanded = li.classList.contains("expanded");
-  li.classList.toggle("expanded");
-  const chevron = li.querySelector(".toggle i");
-  if (chevron) {
-    chevron.className = `icon icon-tabler icons-tabler-outline icon-tabler-chevron-${
-      isExpanded ? "right" : "down"
-    }`;
-  }
-  console.log(`[renderer] Folder ${folderPath} expanded: ${!isExpanded}`);
-  if (!isExpanded) {
-    let ul = li.querySelector("ul");
-    if (!ul) {
-      console.log(`[renderer] Loading subfolder: ${folderPath}`);
-      const subResult = await window.electronAPI.readDir(folderPath);
-      console.log(
-        `[renderer] readDir subfolder result for ${folderPath}:`,
-        subResult
-      );
-      if (subResult.success && subResult.files) {
-        console.log(
-          `[renderer] Subfolder ${folderPath} contains ${subResult.files.length} items:`,
-          subResult.files.map((f) => `${f.name} (${f.isDir ? "dir" : "file"})`)
-        );
-        ul = document.createElement("ul");
-        ul.style.display = "block";
-        li.appendChild(ul);
-        await Promise.all(
-          subResult.files.map((subFile) =>
-            addFileToTree(subFile, folderPath, level + 1)
-          )
-        );
-        // Force DOM reflow
-        ul.getBoundingClientRect();
-        console.log(
-          `[renderer] Subfolder ${folderPath} loaded, <ul> has ${ul.childElementCount} children`
-        );
-        console.log(
-          `[renderer] <ul> content: ${ul.innerHTML.substring(0, 200)}...`
-        );
-      } else {
-        outputArea.textContent = `Error loading folder: ${
-          subResult.error || "No files found"
-        }`;
-        console.error(
-          `[renderer] Error loading subfolder ${folderPath}: ${
-            subResult.error || "No files found"
-          }`
-        );
-        li.classList.remove("expanded");
-        if (chevron) {
-          chevron.className =
-            "icon icon-tabler icons-tabler-outline icon-tabler-chevron-right";
-        }
-      }
-    } else {
-      ul.style.display = "block";
-    }
-  } else {
-    const ul = li.querySelector("ul");
-    if (ul) {
-      ul.style.display = "none";
-    }
-  }
-}
-
-async function addFileToTree(file, parentPath, level) {
+async function addFileToTree(file, parentPath, level, parentElement) {
   const li = document.createElement("li");
   li.dataset.path = file.path;
   li.dataset.level = level;
@@ -1082,7 +1017,7 @@ async function addFileToTree(file, parentPath, level) {
   content += `<span class="file-icon">${iconSvg}</span> <span class="file-name">${displayName}</span></span>`;
   li.innerHTML = content;
   console.log(
-    `[renderer] Added file to tree: ${file.path}, isDir: ${file.isDir}`
+    `[renderer] Added file to tree: ${file.path}, isDir: ${file.isDir}, level: ${level}`
   );
 
   if (file.isDir) {
@@ -1095,6 +1030,16 @@ async function addFileToTree(file, parentPath, level) {
 
   li.addEventListener("click", async (e) => {
     e.stopPropagation();
+    // Remove .selected from all other li elements and update ARIA
+    document.querySelectorAll("#file-tree li.selected").forEach((el) => {
+      el.classList.remove("selected");
+      el.setAttribute("aria-selected", "false");
+    });
+    // Add .selected to the clicked li
+    li.classList.add("selected");
+    li.setAttribute("aria-selected", "true");
+    console.log(`[renderer] Selected: ${file.path}, isDir: ${file.isDir}`);
+
     if (!file.isDir) {
       console.log(`[renderer] File clicked: ${file.path}`);
       const result = await window.electronAPI.readFile(file.path);
@@ -1111,11 +1056,141 @@ async function addFileToTree(file, parentPath, level) {
 
   li.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    console.log(`[renderer] Context menu triggered for: ${file.path}`);
+    e.stopPropagation(); // Ensure event doesn't bubble to parent elements
+    console.log(
+      `[renderer] Context menu triggered for: ${file.path}, isDir: ${file.isDir}, level: ${level}, classes: ${li.className}`
+    );
     window.electronAPI.showContextMenu(file.path, file.isDir);
   });
 
-  fileTreeElement.appendChild(li);
+  parentElement.appendChild(li); // Append to the provided parent <ul>
+}
+
+async function toggleFolder(li, folderPath, level) {
+  console.log(`[renderer] Toggle clicked for folder: ${folderPath}`);
+  const isExpanded = li.classList.contains("expanded");
+  li.classList.toggle("expanded");
+  console.log(
+    `[renderer] Folder ${folderPath} expanded: ${!isExpanded}, classes: ${
+      li.className
+    }`
+  );
+
+  if (!isExpanded) {
+    let ul = li.querySelector("ul");
+    if (!ul) {
+      console.log(`[renderer] Loading subfolder: ${folderPath}`);
+      const subResult = await window.electronAPI.readDir(folderPath);
+      console.log(
+        `[renderer] readDir subfolder result for ${folderPath}:`,
+        subResult
+      );
+      if (subResult.success && subResult.files) {
+        console.log(
+          `[renderer] Subfolder ${folderPath} contains ${subResult.files.length} items:`,
+          subResult.files.map((f) => `${f.name} (${f.isDir ? "dir" : "file"})`)
+        );
+        ul = document.createElement("ul");
+        li.appendChild(ul); // Append <ul> to the folder's <li>
+        await Promise.all(
+          subResult.files.map(
+            (subFile) => addFileToTree(subFile, folderPath, level + 1, ul) // Pass the nested <ul> as parent
+          )
+        );
+        // Force DOM reflow
+        ul.getBoundingClientRect();
+        console.log(
+          `[renderer] Subfolder ${folderPath} loaded, <ul> has ${ul.childElementCount} children`
+        );
+      } else {
+        outputArea.textContent = `Error loading folder: ${
+          subResult.error || "No files found"
+        }`;
+        console.error(
+          `[renderer] Error loading subfolder ${folderPath}: ${
+            subResult.error || "No files found"
+          }`
+        );
+        li.classList.remove("expanded");
+      }
+    } else {
+      ul.style.display = "block"; // Show existing <ul>
+    }
+  } else {
+    const ul = li.querySelector("ul");
+    if (ul) {
+      ul.style.display = "none"; // Hide when collapsing
+    }
+  }
+}
+
+async function loadAndDisplayFolder(folderPath) {
+  if (!window.electronAPI) {
+    outputArea.textContent = "Error: Electron API not available.";
+    console.error("[renderer] Electron API not available");
+    return;
+  }
+  console.log(`[renderer] Loading folder: ${folderPath}`);
+  try {
+    currentFolderPath = folderPath; // Set early
+    console.log("[renderer] Set currentFolderPath:", currentFolderPath);
+    const result = await window.electronAPI.readDir(folderPath);
+    console.log(`[renderer] readDir result for ${folderPath}:`, result);
+    if (result.success && result.files) {
+      fileTreeElement.innerHTML = "";
+      await Promise.all(
+        result.files.map((file) =>
+          addFileToTree(file, folderPath, 0, fileTreeElement)
+        )
+      );
+      console.log(
+        `[renderer] File tree populated for ${folderPath}, HTML length: ${fileTreeElement.innerHTML.length}`
+      );
+      // Update lastOpenFolder setting
+      await window.electronAPI.setSettings("lastOpenFolder", folderPath);
+      console.log(`[renderer] Set lastOpenFolder to: ${folderPath}`);
+      newFileInFolderButton.disabled = false;
+      newFolderButton.disabled = false;
+      closeFolderButton.disabled = false;
+      await loadRecentProjects();
+      updateFolderDisplayName();
+    } else {
+      outputArea.textContent = `Error: ${result.error || "No files found"}`;
+      console.error(
+        `[renderer] Error loading folder ${folderPath}: ${
+          result.error || "No files found"
+        }`
+      );
+      if (result.error && result.error.includes("ENOENT")) {
+        currentFolderPath = null;
+        // Clear lastOpenFolder if the folder is invalid
+        await window.electronAPI.setSettings("lastOpenFolder", null);
+        console.log("[renderer] Cleared lastOpenFolder due to invalid folder");
+        newFileInFolderButton.disabled = true;
+        newFolderButton.disabled = true;
+        closeFolderButton.disabled = true;
+        fileTreeElement.innerHTML =
+          '<li class="placeholder">Open a folder to see files</li>';
+        updateFolderDisplayName();
+      }
+    }
+  } catch (error) {
+    outputArea.textContent = `Error: ${error.message}`;
+    console.error(`[renderer] Error in loadAndDisplayFolder: ${error.message}`);
+    if (error.message.includes("ENOENT")) {
+      currentFolderPath = null;
+      // Clear lastOpenFolder on error
+      await window.electronAPI.setSettings("lastOpenFolder", null);
+      console.log("[renderer] Cleared lastOpenFolder due to error");
+      newFileInFolderButton.disabled = true;
+      newFolderButton.disabled = true;
+      closeFolderButton.disabled = true;
+      fileTreeElement.innerHTML =
+        '<li class="placeholder">Open a folder to see files</li>';
+      updateFolderDisplayName();
+    }
+  }
+  console.log("[renderer] currentFolderPath after load:", currentFolderPath);
 }
 
 async function promptRename(filePath) {
