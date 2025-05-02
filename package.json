@@ -11,9 +11,13 @@
     "make:win": "electron-builder --win",
     "make:linux": "electron-builder --linux"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GeorgeET15/arcade-ide.git"
+  },
   "author": {
     "name": "GeorgeET15",
-    "email": "georgeet15@example.com"
+    "email": "georgeemmanuelthomas@gmail.com"
   },
   "license": "MIT",
   "devDependencies": {
