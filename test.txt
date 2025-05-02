@@ -6,4 +6,3 @@ cd dist/
 sudo dpkg -i arcade-ide_1.0.0_amd64.deb
 
 
-the only thing that is stopping me from the phase one the ide release is the file tree. It is not being rendered properly at all. I want it to be like vscode. But herer When I open a subfolder the contents gets rendered on teh bottom of everything in the root folder and stays thee even after I close the subfolder. When I try to open more subfolders the contents gets accumulated in the bottom
