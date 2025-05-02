@@ -7,9 +7,11 @@ Arcade IDE is a retro-themed 2D game development environment powered by the `arc
 
 ## Features
 
-- **File Tree Navigation**: Easily manage your game project files.
-- **Monaco Editor**: Write and edit code with a powerful, modern editor.
 - **Arcade.h Integration**: Develop 2D games using the `arcade.h` library.
+- **AI Sprite Generator**: Create retro-style sprites using AI-powered tools.
+- **Code Snippets**: Access pre-written code templates to speed up development.
+- **Monaco Editor**: Write and edit code with a powerful, modern editor.
+- **File Tree Navigation**: Easily manage your game project files.
 - **Retro UI**: Enjoy a customizable, arcade-inspired interface.
 - **Cross-Platform**: Runs on Windows and Linux.
 
@@ -17,9 +19,8 @@ Arcade IDE is a retro-themed 2D game development environment powered by the `arc
 
 ### Windows
 
-1. Download the latest `ArcadeIDE-1.0.0-x64.exe` (64-bit) or `ArcadeIDE-1.0.0-ia32.exe` (32-bit) from the [Releases](https://github.com/GeorgeET15/arcade-ide/releases) page.
+1. Download the latest `ArcadeIDE-1.0.0-x64.exe` (64-bit) from the [Releases](https://github.com/GeorgeET15/arcade-ide/releases) page.
 2. Run the installer, choose your installation directory, and follow the prompts.
-   - The installer features a retro-themed banner and sidebar derived from `installer.gif`.
 3. Launch Arcade IDE from the desktop or Start Menu shortcut.
 
 ### Linux
@@ -39,7 +40,8 @@ Arcade IDE is a retro-themed 2D game development environment powered by the `arc
 1. Open Arcade IDE.
 2. Click "Open Folder" to select a project directory with your game files (e.g., `.c` files using `arcade.h`).
 3. Navigate the file tree to open files in the Monaco Editor.
-4. Write, save, and compile your game code using `arcade.h` for retro 2D game development.
+4. Leverage `arcade.h` integration, code snippets, and the AI sprite generator to build your retro 2D game.
+5. Write, save, and compile your game code for development.
 
 ## Giving Credit
 
@@ -86,6 +88,6 @@ Arcade IDE is released under the [MIT License](LICENSE). See the [LICENSE](LICEN
 
 ## Contact
 
-Have questions or ideas? Open an issue on [GitHub](https://github.com/GeorgeET15/arcade-ide/issues) or email GeorgeET15 at georgeet15@example.com.
+Have questions or ideas? Open an issue on [GitHub](https://github.com/GeorgeET15/arcade-ide/issues) or email GeorgeET15 at georgeemmanuelthomas@gmail.com.
 
 Let’s build the ultimate retro game dev IDE together!
