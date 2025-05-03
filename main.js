@@ -158,7 +158,7 @@ async function createWindow() {
     try {
       await mainWindow.loadFile(indexPath);
       console.log("[main] index.html loaded successfully");
-      //mainWindow.webContents.openDevTools();
+      mainWindow.webContents.openDevTools();
     } catch (loadError) {
       console.error(`[main] Failed to load index.html: ${loadError.message}`);
       dialog.showErrorBox(
@@ -236,12 +236,17 @@ ipcMain.handle("settings:set", (event, key, value) => {
   saveConfig();
 });
 
-ipcMain.handle("platform:get", () => {
+ipcMain.handle("platform:get", async () => {
   console.log("[main] IPC platform:get called");
-  return {
-    platform: process.platform,
-    pathSep: path.sep,
-  };
+  try {
+    return {
+      platform: process.platform,
+      pathSep: path.sep,
+    };
+  } catch (error) {
+    console.error("[main] platform:get failed:", error.message);
+    throw error;
+  }
 });
 
 ipcMain.handle("path:join", async (event, ...args) => {
@@ -1024,26 +1029,3 @@ async function removeBg(buffer, apiKey) {
     );
   }
 }
-ipcMain.handle("platform:get", async () => {
-  console.log("[main] IPC platform:get called");
-  try {
-    const platform = process.platform;
-    return platform;
-  } catch (error) {
-    console.error("[main] platform:get failed:", error.message);
-    throw error;
-  }
-});
-ipcMain.handle("settings:set", (event, key, value) => {
-  console.log(
-    `[main] IPC settings:set called with key: ${key}, value: ${value}`
-  );
-  if (value === null && key in config) {
-    delete config[key];
-    console.log(`[main] settings:set deleted key: ${key}`);
-  } else {
-    config[key] = value;
-    console.log(`[main] settings:set updated key: ${key} to ${value}`);
-  }
-  saveConfig();
-});
