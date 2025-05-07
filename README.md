@@ -61,7 +61,7 @@ Arcade IDE is a retro-themed 2D game development environment powered by the `arc
 
 ## Giving Credit
 
-Arcade IDE is licensed under the [MIT License](https://github.com/GeorgeET15/arcade-ide/blob/main/LICENSE). If you use Arcade IDE or its code in your projects, please give credit by including the following in your project’s documentation, README, or about page:
+Arcade IDE is licensed under the [MIT License](https://github.com/GeorgeET15/arcade-ide?tab=MIT-1-ov-file). If you use Arcade IDE or its code in your projects, please give credit by including the following in your project’s documentation, README, or about page:
 
 ```
 Arcade IDE (https://github.com/GeorgeET15/arcade-ide)
@@ -69,7 +69,7 @@ Copyright (c) 2025 GeorgeET15
 Licensed under the MIT License
 ```
 
-You must also include a copy of the [LICENSE](https://github.com/GeorgeET15/arcade-ide/blob/main/LICENSE) file in any distribution that includes substantial portions of Arcade IDE’s code.
+You must also include a copy of the [LICENSE](https://github.com/GeorgeET15/arcade-ide?tab=MIT-1-ov-file) file in any distribution that includes substantial portions of Arcade IDE’s code.
 
 ## Contributing
 
@@ -106,7 +106,7 @@ sudo apt-get install wine
 
 ## License
 
-Arcade IDE is released under the [MIT License](https://github.com/GeorgeET15/arcade-ide/blob/main/LICENSE). See the [LICENSE](https://github.com/GeorgeET15/arcade-ide/blob/main/LICENSE) file for details.
+Arcade IDE is released under the [MIT License](https://github.com/GeorgeET15/arcade-ide/blob/master/LICENSE). See the [LICENSE](https://github.com/GeorgeET15/arcade-ide/blob/master/LICENSE) file for details.
 
 ## Contact
 
