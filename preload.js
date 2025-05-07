@@ -260,4 +260,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
       throw error;
     }
   },
+  package: async (folderPath) => {
+    try {
+      const result = await ipcRenderer.invoke("code:package", folderPath);
+      console.log(`[electronAPI] package(${folderPath}):`, result);
+      return result;
+    } catch (error) {
+      console.error(
+        `[electronAPI] package(${folderPath}) failed:`,
+        error.message
+      );
+      throw error;
+    }
+  },
 });

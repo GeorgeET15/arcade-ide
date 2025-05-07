@@ -43,6 +43,7 @@ const spriteGenerateForm = document.getElementById("sprite-generate-form");
 const toggleRightSidebarButton = document.getElementById(
   "btn-toggle-sidebar-right"
 );
+const packageButton = document.getElementById("btn-package");
 
 console.log("[renderer] Renderer script loaded");
 
@@ -319,6 +320,14 @@ console.log("[renderer] Renderer script loaded");
   }
 })();
 
+// Add JSON validation setup after editor initialization
+monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+  validate: true,
+  allowComments: false,
+  schemas: [],
+});
+console.log("[renderer] JSON validation enabled for all .json files");
+
 async function closeCurrentFolder() {
   if (!currentFolderPath) {
     console.log("[renderer] No folder open to close");
@@ -433,6 +442,7 @@ function createNewTab(
       : monaco.Uri.parse(`untitled:Untitled-${tabCounter - 1}`);
     let language = "c";
     if (fileName.toLowerCase() === "makefile") language = "makefile";
+    else if (fileName.toLowerCase().endsWith(".json")) language = "json";
     else if (!/\.(c|h)$/i.test(fileName) && !isNew) language = "plaintext";
     console.log(
       `[renderer] Creating model for ${fileName} with language ${language}`
@@ -646,31 +656,36 @@ async function handleOpenFile() {
   }
 }
 
-function openOrFocusTab(
-  filePath,
-  content,
-  isPreview = false,
-  previewType = null
-) {
-  const normalizedPath = filePath.replace(/\\/g, pathSep);
-  for (const [id, tabInfo] of openTabs.entries()) {
-    if (
-      tabInfo.filePath &&
-      tabInfo.filePath.replace(/\\/g, pathSep) === normalizedPath
-    ) {
-      setActiveTab(id);
-      return id;
+// Update openOrFocusTab to handle JSON warnings from dialog:openFile
+// Update handleOpenFile to pass warnings to openOrFocusTab
+async function handleOpenFile() {
+  if (!window.electronAPI) {
+    outputArea.textContent = "Error: Electron API not available.";
+    return;
+  }
+  outputArea.textContent = "Opening file dialog...";
+  try {
+    const result = await window.electronAPI.openFile();
+    if (!result.canceled && result.filePath && result.success) {
+      openOrFocusTab(
+        result.filePath,
+        result.content,
+        false,
+        null,
+        result.warning
+      );
+      outputArea.textContent = `Opened: ${getBaseName(result.filePath)}`;
+    } else if (result.error) {
+      outputArea.textContent = `Error: ${result.error}`;
+    } else {
+      outputArea.textContent = "File open canceled.";
     }
+  } catch (error) {
+    outputArea.textContent = `Error: ${error.message}`;
   }
-  const fileNameLower = getBaseName(filePath)?.toLowerCase();
-  if (fileNameLower?.endsWith(".png")) {
-    return createNewTab(filePath, "", true, "image");
-  } else if (fileNameLower?.endsWith(".wav")) {
-    return createNewTab(filePath, "", true, "audio");
-  }
-  return createNewTab(filePath, content, isPreview, previewType);
 }
 
+// Update handleSaveFile to handle JSON validation errors
 async function handleSaveFile(tabIdToSave = activeTabId) {
   if (!window.electronAPI) {
     outputArea.textContent = "Error: Electron API not available.";
@@ -686,13 +701,11 @@ async function handleSaveFile(tabIdToSave = activeTabId) {
     return false;
   }
   const currentCode = tabInfo.model.getValue();
-
   if (!tabInfo.isModified && !tabInfo.isNew) {
     outputArea.textContent = `No changes to save for ${tabInfo.name}.`;
     showToast(`No changes in ${tabInfo.name}`);
     return true;
   }
-
   outputArea.textContent = `Saving ${tabInfo.name}...`;
   try {
     const result = await window.electronAPI.saveFile(
@@ -706,17 +719,16 @@ async function handleSaveFile(tabIdToSave = activeTabId) {
       tabInfo.filePath = result.filePath;
       tabInfo.name = getBaseName(result.filePath);
       tabInfo.isNew = false;
-
       if (needsUpdate) {
         const nameSpan = tabInfo.domElement.querySelector(".tab-name");
         if (nameSpan) nameSpan.textContent = tabInfo.name;
         tabInfo.domElement.title = tabInfo.filePath;
-
         const newUri = monaco.Uri.file(result.filePath);
         let language = "c";
         if (tabInfo.name.toLowerCase() === "makefile") language = "makefile";
+        else if (tabInfo.name.toLowerCase().endsWith(".json"))
+          language = "json";
         else if (!/\.(c|h)$/i.test(tabInfo.name)) language = "plaintext";
-
         if (
           tabInfo.model.uri.toString() !== newUri.toString() ||
           tabInfo.model.getLanguageId() !== language
@@ -741,7 +753,7 @@ async function handleSaveFile(tabIdToSave = activeTabId) {
       return true;
     } else if (result.error) {
       outputArea.textContent = `Error: ${result.error}`;
-      showToast(`Error saving ${tabInfo.name}`);
+      showToast(`Error saving ${tabInfo.name}: ${result.error}`);
       return false;
     } else {
       outputArea.textContent = "Save canceled.";
@@ -792,6 +804,7 @@ async function handlePlay() {
   }
 }
 
+// Update handleNewFileInFolder to allow JSON file creation with name validation
 async function handleNewFileInFolder(targetFolder = currentFolderPath) {
   if (!window.electronAPI) {
     outputArea.textContent = "Error: Electron API not available.";
@@ -805,17 +818,26 @@ async function handleNewFileInFolder(targetFolder = currentFolderPath) {
   try {
     const fileName = await showInputDialog({
       title: "New File",
-      message: "Enter file name (e.g., newfile.c):",
-      defaultInput: "newfile.c",
+      message: "Enter file name (e.g., newfile.json):",
+      defaultInput: "newfile.json",
     });
     if (!fileName) {
       outputArea.textContent = "File creation canceled.";
       return;
     }
-    if (!/\.(c|h|makefile|png|wav)$/i.test(fileName)) {
+    if (!/\.(c|h|makefile|png|wav|json)$/i.test(fileName)) {
       outputArea.textContent =
-        "Invalid file extension. Use .c, .h, .makefile, .png, or .wav.";
+        "Invalid file extension. Use .c, .h, .makefile, .png, .wav, or .json.";
       showToast("Invalid file extension");
+      return;
+    }
+    if (
+      fileName.toLowerCase().endsWith(".json") &&
+      !/^[a-zA-Z0-9_-]+\.json$/.test(fileName)
+    ) {
+      outputArea.textContent =
+        "JSON file names must contain only letters, numbers, underscores, or hyphens.";
+      showToast("Invalid JSON file name");
       return;
     }
     const filePath = await window.electronAPI.pathJoin(targetFolder, fileName);
@@ -834,47 +856,6 @@ async function handleNewFileInFolder(targetFolder = currentFolderPath) {
     outputArea.textContent = `Error creating file: ${error.message}`;
     showToast(`Failed to create file`);
     console.error(`[renderer] Error creating file: ${error.message}`);
-  }
-}
-
-async function handleNewFolder(targetFolder = currentFolderPath) {
-  if (!window.electronAPI) {
-    outputArea.textContent = "Error: Electron API not available.";
-    return;
-  }
-  if (!targetFolder) {
-    outputArea.textContent = "No folder open. Please open a folder first.";
-    showToast("Open a folder to create folders");
-    return;
-  }
-  try {
-    const folderName = await showInputDialog({
-      title: "New Folder",
-      message: "Enter folder name:",
-      defaultInput: "NewFolder",
-    });
-    if (!folderName) {
-      outputArea.textContent = "Folder creation canceled.";
-      return;
-    }
-    const folderPath = await window.electronAPI.pathJoin(
-      targetFolder,
-      folderName
-    );
-    console.log(`[renderer] Creating folder: ${folderPath}`);
-    const createResult = await window.electronAPI.createFolder(folderPath);
-    if (createResult.success) {
-      outputArea.textContent = `Created: ${folderName}`;
-      showToast(`Created ${folderName}`);
-      await loadAndDisplayFolder(currentFolderPath);
-    } else {
-      outputArea.textContent = `Error: ${createResult.error}`;
-      showToast(`Failed to create ${folderName}`);
-    }
-  } catch (error) {
-    outputArea.textContent = `Error creating folder: ${error.message}`;
-    showToast(`Failed to create folder`);
-    console.error(`[renderer] Error creating folder: ${error.message}`);
   }
 }
 
@@ -944,25 +925,61 @@ async function loadAndDisplayFolder(folderPath) {
   }
   console.log(`[renderer] Loading folder: ${folderPath}`);
   try {
-    currentFolderPath = folderPath; // Set early
+    // Capture expanded folder paths before clearing the tree
+    const expandedFolders = new Set();
+    fileTreeElement.querySelectorAll("li.folder.expanded").forEach((li) => {
+      const path = li.dataset.path;
+      if (path) expandedFolders.add(path);
+    });
+    console.log(
+      `[renderer] Captured ${expandedFolders.size} expanded folders:`,
+      Array.from(expandedFolders)
+    );
+
+    currentFolderPath = folderPath;
     console.log("[renderer] Set currentFolderPath:", currentFolderPath);
     const result = await window.electronAPI.readDir(folderPath);
     console.log(`[renderer] readDir result for ${folderPath}:`, result);
     if (result.success && result.files) {
-      fileTreeElement.innerHTML = "";
+      console.log(
+        `[renderer] Files received:`,
+        result.files.map((f) => `${f.name} (${f.isDir ? "dir" : "file"})`)
+      );
+      fileTreeElement.innerHTML = ""; // Clear existing tree
       await Promise.all(
-        result.files.map(
-          (file) => addFileToTree(file, folderPath, 0, fileTreeElement) // Pass fileTreeElement for root level
+        result.files.map((file) =>
+          addFileToTree(file, folderPath, 0, fileTreeElement)
         )
       );
       console.log(
-        `[renderer] File tree populated for ${folderPath}, HTML length: ${fileTreeElement.innerHTML.length}`
+        `[renderer] File tree populated for ${folderPath}, items: ${fileTreeElement.children.length}`
       );
+
+      // Re-expand previously expanded folders
+      if (expandedFolders.size > 0) {
+        console.log("[renderer] Re-expanding folders...");
+        const expandPromises = [];
+        fileTreeElement.querySelectorAll("li.folder").forEach((li) => {
+          const path = li.dataset.path;
+          if (path && expandedFolders.has(path)) {
+            expandPromises.push(
+              toggleFolder(li, path, parseInt(li.dataset.level))
+            );
+          }
+        });
+        await Promise.all(expandPromises);
+        console.log(`[renderer] Re-expanded ${expandPromises.length} folders`);
+      }
+
       newFileInFolderButton.disabled = false;
       newFolderButton.disabled = false;
       closeFolderButton.disabled = false;
       await loadRecentProjects();
       updateFolderDisplayName();
+      if (fileTreeElement.children.length === 0) {
+        fileTreeElement.innerHTML =
+          '<li class="placeholder">No supported files found</li>';
+      }
     } else {
       outputArea.textContent = `Error: ${result.error || "No files found"}`;
       console.error(
@@ -996,6 +1013,7 @@ async function loadAndDisplayFolder(folderPath) {
   console.log("[renderer] currentFolderPath after load:", currentFolderPath);
 }
 
+// Update addFileToTree to handle JSON files explicitly and improve logging
 async function addFileToTree(file, parentPath, level, parentElement) {
   const li = document.createElement("li");
   li.dataset.path = file.path;
@@ -1006,7 +1024,9 @@ async function addFileToTree(file, parentPath, level, parentElement) {
 
   const iconSvg = await window.electronAPI.getIconClass(file.name, file.isDir);
   console.log(
-    `[renderer] Icon SVG for ${file.name}: ${iconSvg.substring(0, 50)}...`
+    `[renderer] Processing file: ${file.path}, isDir: ${
+      file.isDir
+    }, extension: ${file.name.toLowerCase().split(".").pop()}`
   );
   let content = `<span class="file-content" style="padding-left: ${indent}px;">`;
   if (file.isDir) {
@@ -1030,12 +1050,10 @@ async function addFileToTree(file, parentPath, level, parentElement) {
 
   li.addEventListener("click", async (e) => {
     e.stopPropagation();
-    // Remove .selected from all other li elements and update ARIA
     document.querySelectorAll("#file-tree li.selected").forEach((el) => {
       el.classList.remove("selected");
       el.setAttribute("aria-selected", "false");
     });
-    // Add .selected to the clicked li
     li.classList.add("selected");
     li.setAttribute("aria-selected", "true");
     console.log(`[renderer] Selected: ${file.path}, isDir: ${file.isDir}`);
@@ -1044,7 +1062,7 @@ async function addFileToTree(file, parentPath, level, parentElement) {
       console.log(`[renderer] File clicked: ${file.path}`);
       const result = await window.electronAPI.readFile(file.path);
       if (result.success) {
-        openOrFocusTab(file.path, result.content);
+        openOrFocusTab(file.path, result.content, false, null, result.warning);
       } else {
         outputArea.textContent = `Error: ${result.error}`;
         console.error(
@@ -1056,14 +1074,50 @@ async function addFileToTree(file, parentPath, level, parentElement) {
 
   li.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    e.stopPropagation(); // Ensure event doesn't bubble to parent elements
+    e.stopPropagation();
     console.log(
-      `[renderer] Context menu triggered for: ${file.path}, isDir: ${file.isDir}, level: ${level}, classes: ${li.className}`
+      `[renderer] Context menu triggered for: ${file.path}, isDir: ${file.isDir}`
     );
     window.electronAPI.showContextMenu(file.path, file.isDir);
   });
 
-  parentElement.appendChild(li); // Append to the provided parent <ul>
+  parentElement.appendChild(li);
+  console.log(`[renderer] Appended ${file.name} to file tree`);
+}
+
+function openOrFocusTab(
+  filePath,
+  content,
+  isPreview = false,
+  previewType = null,
+  warning = null
+) {
+  const normalizedPath = filePath.replace(/\\/g, pathSep);
+  for (const [id, tabInfo] of openTabs.entries()) {
+    if (
+      tabInfo.filePath &&
+      tabInfo.filePath.replace(/\\/g, pathSep) === normalizedPath
+    ) {
+      setActiveTab(id);
+      if (warning) {
+        outputArea.textContent = `Warning: ${warning}`;
+        showToast(`Invalid JSON in ${getBaseName(filePath)}`);
+      }
+      return id;
+    }
+  }
+  const fileNameLower = getBaseName(filePath)?.toLowerCase();
+  if (fileNameLower?.endsWith(".png")) {
+    return createNewTab(filePath, "", true, "image");
+  } else if (fileNameLower?.endsWith(".wav")) {
+    return createNewTab(filePath, "", true, "audio");
+  }
+  const tabId = createNewTab(filePath, content, isPreview, previewType);
+  if (warning && fileNameLower?.endsWith(".json")) {
+    outputArea.textContent = `Warning: ${warning}`;
+    showToast(`Invalid JSON in ${getBaseName(filePath)}`);
+  }
+  return tabId;
 }
 
 async function toggleFolder(li, folderPath, level) {
@@ -1124,6 +1178,7 @@ async function toggleFolder(li, folderPath, level) {
   }
 }
 
+// Update loadAndDisplayFolder to add logging and ensure JSON files are processed
 async function loadAndDisplayFolder(folderPath) {
   if (!window.electronAPI) {
     outputArea.textContent = "Error: Electron API not available.";
@@ -1132,28 +1187,33 @@ async function loadAndDisplayFolder(folderPath) {
   }
   console.log(`[renderer] Loading folder: ${folderPath}`);
   try {
-    currentFolderPath = folderPath; // Set early
+    currentFolderPath = folderPath;
     console.log("[renderer] Set currentFolderPath:", currentFolderPath);
     const result = await window.electronAPI.readDir(folderPath);
     console.log(`[renderer] readDir result for ${folderPath}:`, result);
     if (result.success && result.files) {
-      fileTreeElement.innerHTML = "";
+      console.log(
+        `[renderer] Files received:`,
+        result.files.map((f) => `${f.name} (${f.isDir ? "dir" : "file"})`)
+      );
+      fileTreeElement.innerHTML = ""; // Clear existing tree
       await Promise.all(
         result.files.map((file) =>
           addFileToTree(file, folderPath, 0, fileTreeElement)
         )
       );
       console.log(
-        `[renderer] File tree populated for ${folderPath}, HTML length: ${fileTreeElement.innerHTML.length}`
+        `[renderer] File tree populated for ${folderPath}, items: ${fileTreeElement.children.length}`
       );
-      // Update lastOpenFolder setting
-      await window.electronAPI.setSettings("lastOpenFolder", folderPath);
-      console.log(`[renderer] Set lastOpenFolder to: ${folderPath}`);
       newFileInFolderButton.disabled = false;
       newFolderButton.disabled = false;
       closeFolderButton.disabled = false;
       await loadRecentProjects();
       updateFolderDisplayName();
+      if (fileTreeElement.children.length === 0) {
+        fileTreeElement.innerHTML =
+          '<li class="placeholder">No supported files found</li>';
+      }
     } else {
       outputArea.textContent = `Error: ${result.error || "No files found"}`;
       console.error(
@@ -1163,9 +1223,6 @@ async function loadAndDisplayFolder(folderPath) {
       );
       if (result.error && result.error.includes("ENOENT")) {
         currentFolderPath = null;
-        // Clear lastOpenFolder if the folder is invalid
-        await window.electronAPI.setSettings("lastOpenFolder", null);
-        console.log("[renderer] Cleared lastOpenFolder due to invalid folder");
         newFileInFolderButton.disabled = true;
         newFolderButton.disabled = true;
         closeFolderButton.disabled = true;
@@ -1179,9 +1236,6 @@ async function loadAndDisplayFolder(folderPath) {
     console.error(`[renderer] Error in loadAndDisplayFolder: ${error.message}`);
     if (error.message.includes("ENOENT")) {
       currentFolderPath = null;
-      // Clear lastOpenFolder on error
-      await window.electronAPI.setSettings("lastOpenFolder", null);
-      console.log("[renderer] Cleared lastOpenFolder due to error");
       newFileInFolderButton.disabled = true;
       newFolderButton.disabled = true;
       closeFolderButton.disabled = true;
@@ -1445,33 +1499,113 @@ function toggleIntroMessage() {
   introMessage.style.display = openTabs.size === 0 ? "flex" : "none";
 }
 
-function attachUIEventListeners() {
-  openFolderButtons.forEach((btn) =>
-    btn.addEventListener("click", handleOpenFolder)
+async function handlePackage() {
+  if (!window.electronAPI) {
+    outputArea.textContent = "Error: Electron API not available.";
+    showToast("Electron API not available");
+    return;
+  }
+  if (!currentFolderPath) {
+    outputArea.textContent = "No folder open. Please open a folder first.";
+    showToast("Open a folder to package");
+    return;
+  }
+  const progressContainer = document.getElementById(
+    "package-progress-container"
   );
-  closeFolderButton.addEventListener("click", closeCurrentFolder);
-  newFileButton.addEventListener("click", () => createNewTab());
-  openFileButton.addEventListener("click", handleOpenFile);
-  saveFileButton.addEventListener("click", () => handleSaveFile());
-  playButton.addEventListener("click", handlePlay);
-  newFileInFolderButton.addEventListener("click", () =>
+  const progressFill = document.getElementById("package-progress-fill");
+  const progressMessage = document.getElementById("package-progress-message");
+
+  progressContainer.style.display = "block";
+  progressFill.style.width = "0%";
+  progressMessage.textContent = "Packaging game...";
+
+  try {
+    // Simulate progress updates (replace with actual progress if API supports it)
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += 10;
+      progressFill.style.width = `${progress}%`;
+      if (progress >= 90) clearInterval(progressInterval);
+    }, 500);
+
+    const result = await window.electronAPI.package(currentFolderPath);
+
+    clearInterval(progressInterval);
+    progressFill.style.width = "100%";
+    progressMessage.textContent = result.success
+      ? "Packaging complete!"
+      : "Packaging failed.";
+
+    outputArea.textContent =
+      result.output || "No output from packaging process";
+    if (result.success) {
+      showToast("Game packaged successfully");
+    } else {
+      let errorMessage = "Failed to package game";
+      if (
+        result.error.includes("ENOENT") &&
+        result.error.includes("dist/version")
+      ) {
+        errorMessage =
+          "Packaging failed: 'dist/version' file not found. Ensure the game has been built correctly.";
+      } else if (result.error.includes("arcade.config.json")) {
+        errorMessage = `Packaging failed: ${result.error}`;
+      } else {
+        errorMessage = `Packaging failed: ${result.error}`;
+      }
+      outputArea.textContent = errorMessage;
+      showToast(errorMessage);
+      console.error(`[renderer] Packaging error: ${result.error}`);
+    }
+
+    // Hide progress bar after 2 seconds
+    setTimeout(() => {
+      progressContainer.style.display = "none";
+    }, 2000);
+  } catch (error) {
+    clearInterval(progressInterval);
+    progressContainer.style.display = "none";
+    let errorMessage = `Error: ${error.message}`;
+    if (
+      error.message.includes("ENOENT") &&
+      error.message.includes("dist/version")
+    ) {
+      errorMessage =
+        "Packaging failed: 'dist/version' file not found. Ensure the game has been built correctly.";
+    }
+    outputArea.textContent = errorMessage;
+    showToast("Failed to package game");
+    console.error(`[renderer] Error packaging game: ${error.message}`);
+  }
+}
+
+function cleanupUIEventListeners() {
+  openFolderButtons.forEach((btn) =>
+    btn.removeEventListener("click", handleOpenFolder)
+  );
+  closeFolderButton.removeEventListener("click", closeCurrentFolder);
+  newFileButton.removeEventListener("click", () => createNewTab());
+  openFileButton.removeEventListener("click", handleOpenFile);
+  saveFileButton.removeEventListener("click", () => handleSaveFile());
+  playButton.removeEventListener("click", handlePlay);
+  newFileInFolderButton.removeEventListener("click", () =>
     handleNewFileInFolder()
   );
-  newFolderButton.addEventListener("click", () => handleNewFolder());
-  toggleOutputButton.addEventListener("click", () => toggleOutput());
-  clearOutputButton.addEventListener(
+  newFolderButton.removeEventListener("click", () => handleNewFolder());
+  toggleOutputButton.removeEventListener("click", () => toggleOutput());
+  clearOutputButton.removeEventListener(
     "click",
     () => (outputArea.textContent = "")
   );
-  toggleSidebarButton.addEventListener("click", () => toggleSidebar());
+  toggleSidebarButton.removeEventListener("click", () => toggleSidebar());
   if (toggleRightSidebarButton) {
-    toggleRightSidebarButton.addEventListener("click", () =>
+    toggleRightSidebarButton.removeEventListener("click", () =>
       toggleRightSidebar()
     );
   }
-  settingsButton.addEventListener("click", async () => {
+  settingsButton.removeEventListener("click", async () => {
     settingsDialog.style.display = "block";
-    // Populate theme selector with valid options
     themeSelector.innerHTML = `
       <option value="style.css">Charcoal Teal</option>
       <option value="themes/neon-purple.css">Neon Purple</option>
@@ -1503,13 +1637,163 @@ function attachUIEventListeners() {
         "png",
         "wav",
         "makefile",
+        "json",
       ])) || []
     ).join(",");
     logLevelSelector.value = await window.electronAPI.getSettings(
       "logLevel",
       "info"
     );
-    // Populate API key inputs
+    geminiApiKeyInput.value =
+      (await window.electronAPI.getSettings("geminiApiKey", "")) || "";
+    removeBgApiKeyInput.value =
+      (await window.electronAPI.getSettings("removeBgApiKey", "")) || "";
+  });
+  themeSelector.removeEventListener("change", async () => {
+    const newTheme = themeSelector.value;
+    console.log(`[renderer] Theme selector changed to: ${newTheme}`);
+    await applyTheme(newTheme);
+    showToast(
+      `Applied theme: ${
+        newTheme.startsWith("themes/")
+          ? newTheme.split("/").pop().replace(".css", "")
+          : "Charcoal Teal"
+      }`
+    );
+  });
+  buildToolPathInput.removeEventListener("change", async () => {
+    await window.electronAPI.setSettings(
+      "buildToolPath",
+      buildToolPathInput.value
+    );
+    console.log(
+      `[renderer] Build tool path updated to: ${buildToolPathInput.value}`
+    );
+  });
+  autoSaveCheckbox.removeEventListener("change", async () => {
+    await window.electronAPI.setSettings("autoSave", autoSaveCheckbox.checked);
+    console.log(`[renderer] Auto-save set to: ${autoSaveCheckbox.checked}`);
+  });
+  fontSizeInput.removeEventListener("change", async () => {
+    const fontSize = parseInt(fontSizeInput.value) || 12;
+    await window.electronAPI.setSettings("fontSize", fontSize);
+    if (editor) {
+      editor.updateOptions({ fontSize });
+    }
+    console.log(`[renderer] Font size updated to: ${fontSize}`);
+  });
+  fileExtensionsInput.removeEventListener("change", async () => {
+    let extensions = fileExtensionsInput.value
+      .split(",")
+      .map((ext) => ext.trim())
+      .filter((ext) => ext);
+    if (!extensions.includes("json")) {
+      extensions.push("json");
+      fileExtensionsInput.value = extensions.join(",");
+    }
+    await window.electronAPI.setSettings("fileExtensions", extensions);
+    console.log(
+      `[renderer] File extensions updated to: ${extensions.join(", ")}`
+    );
+  });
+  logLevelSelector.removeEventListener("change", async () => {
+    await window.electronAPI.setSettings("logLevel", logLevelSelector.value);
+    console.log(`[renderer] Log level updated to: ${logLevelSelector.value}`);
+  });
+  geminiApiKeyInput.removeEventListener("change", async () => {
+    await window.electronAPI.setSettings(
+      "geminiApiKey",
+      geminiApiKeyInput.value
+    );
+    console.log(`[renderer] Gemini API key updated`);
+  });
+  removeBgApiKeyInput.removeEventListener("change", async () => {
+    await window.electronAPI.setSettings(
+      "removeBgApiKey",
+      removeBgApiKeyInput.value
+    );
+    console.log(`[renderer] Remove.bg API key updated`);
+  });
+  closeSettingsButton.removeEventListener("click", () => {
+    settingsDialog.style.display = "none";
+    console.log("[renderer] Settings dialog closed");
+  });
+  clearRecentProjectsButton.removeEventListener("click", clearRecentProjects);
+  if (spriteGenerateForm) {
+    spriteGenerateForm.removeEventListener("submit", handleGenerateSprite);
+  }
+  if (packageButton) {
+    packageButton.removeEventListener("click", handlePackage);
+  }
+}
+
+function attachUIEventListeners() {
+  // Clean up existing listeners to prevent duplicates
+  cleanupUIEventListeners();
+
+  openFolderButtons.forEach((btn) =>
+    btn.addEventListener("click", handleOpenFolder)
+  );
+  closeFolderButton.addEventListener("click", closeCurrentFolder);
+  newFileButton.addEventListener("click", () => createNewTab());
+  openFileButton.addEventListener("click", handleOpenFile);
+  saveFileButton.addEventListener("click", () => handleSaveFile());
+  playButton.addEventListener("click", handlePlay);
+  newFileInFolderButton.addEventListener("click", () =>
+    handleNewFileInFolder()
+  );
+  newFolderButton.addEventListener("click", () => handleNewFolder());
+  toggleOutputButton.addEventListener("click", () => toggleOutput());
+  clearOutputButton.addEventListener(
+    "click",
+    () => (outputArea.textContent = "")
+  );
+  toggleSidebarButton.addEventListener("click", () => toggleSidebar());
+  if (toggleRightSidebarButton) {
+    toggleRightSidebarButton.addEventListener("click", () =>
+      toggleRightSidebar()
+    );
+  }
+  settingsButton.addEventListener("click", async () => {
+    settingsDialog.style.display = "block";
+    themeSelector.innerHTML = `
+      <option value="style.css">Charcoal Teal</option>
+      <option value="themes/neon-purple.css">Neon Purple</option>
+      <option value="themes/retro-red.css">Retro Red</option>
+      <option value="themes/cyber-green.css">Cyber Green</option>
+      <option value="themes/vs-light.css">VS Light</option>
+      <option value="themes/vs-dark.css">VS Dark</option>
+      <option value="themes/github-dark.css">GitHub Dark</option>
+    `;
+    const currentTheme = await window.electronAPI.getSettings(
+      "selectedTheme",
+      "style.css"
+    );
+    themeSelector.value = currentTheme;
+    console.log(
+      `[renderer] Settings dialog opened, current theme: ${currentTheme}`
+    );
+    buildToolPathInput.value =
+      (await window.electronAPI.getSettings("buildToolPath", "")) || "";
+    autoSaveCheckbox.checked = await window.electronAPI.getSettings(
+      "autoSave",
+      false
+    );
+    fontSizeInput.value = await window.electronAPI.getSettings("fontSize", 12);
+    fileExtensionsInput.value = (
+      (await window.electronAPI.getSettings("fileExtensions", [
+        "c",
+        "h",
+        "png",
+        "wav",
+        "makefile",
+        "json",
+      ])) || []
+    ).join(",");
+    logLevelSelector.value = await window.electronAPI.getSettings(
+      "logLevel",
+      "info"
+    );
     geminiApiKeyInput.value =
       (await window.electronAPI.getSettings("geminiApiKey", "")) || "";
     removeBgApiKeyInput.value =
@@ -1527,7 +1811,6 @@ function attachUIEventListeners() {
       }`
     );
   });
-
   buildToolPathInput.addEventListener("change", async () => {
     await window.electronAPI.setSettings(
       "buildToolPath",
@@ -1537,12 +1820,10 @@ function attachUIEventListeners() {
       `[renderer] Build tool path updated to: ${buildToolPathInput.value}`
     );
   });
-
   autoSaveCheckbox.addEventListener("change", async () => {
     await window.electronAPI.setSettings("autoSave", autoSaveCheckbox.checked);
     console.log(`[renderer] Auto-save set to: ${autoSaveCheckbox.checked}`);
   });
-
   fontSizeInput.addEventListener("change", async () => {
     const fontSize = parseInt(fontSizeInput.value) || 12;
     await window.electronAPI.setSettings("fontSize", fontSize);
@@ -1551,24 +1832,24 @@ function attachUIEventListeners() {
     }
     console.log(`[renderer] Font size updated to: ${fontSize}`);
   });
-
   fileExtensionsInput.addEventListener("change", async () => {
-    const extensions = fileExtensionsInput.value
+    let extensions = fileExtensionsInput.value
       .split(",")
       .map((ext) => ext.trim())
       .filter((ext) => ext);
+    if (!extensions.includes("json")) {
+      extensions.push("json");
+      fileExtensionsInput.value = extensions.join(",");
+    }
     await window.electronAPI.setSettings("fileExtensions", extensions);
     console.log(
       `[renderer] File extensions updated to: ${extensions.join(", ")}`
     );
   });
-
   logLevelSelector.addEventListener("change", async () => {
     await window.electronAPI.setSettings("logLevel", logLevelSelector.value);
     console.log(`[renderer] Log level updated to: ${logLevelSelector.value}`);
   });
-
-  // Add event listeners for API key inputs
   geminiApiKeyInput.addEventListener("change", async () => {
     await window.electronAPI.setSettings(
       "geminiApiKey",
@@ -1576,7 +1857,6 @@ function attachUIEventListeners() {
     );
     console.log(`[renderer] Gemini API key updated`);
   });
-
   removeBgApiKeyInput.addEventListener("change", async () => {
     await window.electronAPI.setSettings(
       "removeBgApiKey",
@@ -1584,16 +1864,16 @@ function attachUIEventListeners() {
     );
     console.log(`[renderer] Remove.bg API key updated`);
   });
-
   closeSettingsButton.addEventListener("click", () => {
     settingsDialog.style.display = "none";
     console.log("[renderer] Settings dialog closed");
   });
-
   clearRecentProjectsButton.addEventListener("click", clearRecentProjects);
-
   if (spriteGenerateForm) {
     spriteGenerateForm.addEventListener("submit", handleGenerateSprite);
+  }
+  if (packageButton) {
+    packageButton.addEventListener("click", handlePackage);
   }
 }
 
@@ -1617,6 +1897,9 @@ async function handleGenerateSprite(event) {
   const errorMessage = spriteGenerateForm.querySelector(".error-message");
   const previewPlaceholder = spriteGenerateForm.querySelector(
     ".sprite-preview-placeholder"
+  );
+  const progressContainer = document.getElementById(
+    "package-progress-container"
   );
   if (errorMessage) {
     errorMessage.classList.remove("show");
@@ -1710,20 +1993,10 @@ async function handleGenerateSprite(event) {
           <path d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6z" />
         </svg>
       </div>
-    `; // Add loading content with classes
+    `;
     previewPlaceholder.classList.add("loading");
-    console.log(
-      "[renderer] Loader display style:",
-      window.getComputedStyle(
-        previewPlaceholder.querySelector(".loading-content")
-      ).display
-    );
   }
   outputArea.textContent = `Generating sprite: ${spriteData.imageName}.png...`;
-  console.log("[renderer] Generating sprite with data:", {
-    ...spriteData,
-    hexColors: colorArray,
-  });
 
   try {
     const result = await window.electronAPI.generateSprite({
@@ -1731,6 +2004,10 @@ async function handleGenerateSprite(event) {
       hexColors: colorArray,
     });
     console.log("[renderer] generateSprite result:", result);
+
+    // Hide progress bar
+    progressContainer.style.display = "none";
+
     if (result.success) {
       outputArea.textContent = `Generated: ${getBaseName(result.filePath)}`;
       showToast(`Generated ${getBaseName(result.filePath)}`);
@@ -1744,11 +2021,11 @@ async function handleGenerateSprite(event) {
           "[renderer] Removing loading class from sprite-preview-placeholder"
         );
         previewPlaceholder.classList.remove("loading");
-        previewPlaceholder.innerHTML = ""; // Clear loading content
+        previewPlaceholder.innerHTML = "";
         const img = document.createElement("img");
         img.src = `file://${result.filePath}`;
         img.alt = spriteData.imageName;
-        previewPlaceholder.appendChild(img); // CSS will handle sizing and scaling
+        previewPlaceholder.appendChild(img);
       }
       await loadAndDisplayFolder(currentFolderPath);
       const assetsPath = await window.electronAPI.pathJoin(
@@ -1812,6 +2089,9 @@ async function handleGenerateSprite(event) {
       }
     }
   } catch (error) {
+    // Hide progress bar on error
+    progressContainer.style.display = "none";
+
     const errorText = error.message || "Failed to generate sprite";
     if (errorMessage) {
       errorMessage.textContent = errorText;
@@ -1850,5 +2130,111 @@ async function handleGenerateSprite(event) {
         </div>
       `;
     }
+  }
+}
+
+// Update handleNewFileInFolder to initialize JSON files with valid content
+async function handleNewFileInFolder(targetFolder = currentFolderPath) {
+  if (!window.electronAPI) {
+    outputArea.textContent = "Error: Electron API not available.";
+    showToast("Electron API not available");
+    return;
+  }
+  if (!targetFolder) {
+    outputArea.textContent = "No folder open. Please open a folder first.";
+    showToast("Open a folder to create files");
+    return;
+  }
+  try {
+    const fileName = await showInputDialog({
+      title: "New File",
+      message: "Enter file name (e.g., newfile.json):",
+      defaultInput: "newfile.json",
+    });
+    if (!fileName) {
+      outputArea.textContent = "File creation canceled.";
+      return;
+    }
+    if (!/\.(c|h|makefile|png|wav|json)$/i.test(fileName)) {
+      outputArea.textContent =
+        "Invalid file extension. Use .c, .h, .makefile, .png, .wav, or .json.";
+      showToast("Invalid file extension");
+      return;
+    }
+    if (
+      fileName.toLowerCase().endsWith(".json") &&
+      !/^[a-zA-Z0-9_-]+\.json$/.test(fileName)
+    ) {
+      outputArea.textContent =
+        "JSON file names must contain only letters, numbers, underscores, or hyphens.";
+      showToast("Invalid JSON file name");
+      return;
+    }
+    const filePath = await window.electronAPI.pathJoin(targetFolder, fileName);
+    console.log(`[renderer] Creating file: ${filePath}`);
+    // Initialize JSON files with empty object
+    const content = fileName.toLowerCase().endsWith(".json") ? "{}" : "";
+    const writeResult = await window.electronAPI.writeFile(filePath, content);
+    if (writeResult.success) {
+      outputArea.textContent = `Created: ${fileName}`;
+      showToast(`Created ${fileName}`);
+      await loadAndDisplayFolder(currentFolderPath);
+      openOrFocusTab(filePath, content);
+    } else {
+      outputArea.textContent = `Error: ${writeResult.error}`;
+      showToast(`Failed to create ${fileName}`);
+    }
+  } catch (error) {
+    outputArea.textContent = `Error creating file: ${error.message}`;
+    showToast(`Failed to create file`);
+    console.error(`[renderer] Error creating file: ${error.message}`);
+  }
+}
+
+async function handleNewFolder(targetFolder = currentFolderPath) {
+  if (!window.electronAPI) {
+    outputArea.textContent = "Error: Electron API not available.";
+    showToast("Electron API not available");
+    return;
+  }
+  if (!targetFolder) {
+    outputArea.textContent = "No folder open. Please open a folder first.";
+    showToast("Open a folder to create folders");
+    return;
+  }
+  try {
+    const folderName = await showInputDialog({
+      title: "New Folder",
+      message: "Enter folder name:",
+      defaultInput: "newfolder",
+    });
+    if (!folderName) {
+      outputArea.textContent = "Folder creation canceled.";
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(folderName)) {
+      outputArea.textContent =
+        "Folder names must contain only letters, numbers, underscores, or hyphens.";
+      showToast("Invalid folder name");
+      return;
+    }
+    const folderPath = await window.electronAPI.pathJoin(
+      targetFolder,
+      folderName
+    );
+    console.log(`[renderer] Creating folder: ${folderPath}`);
+    const mkdirResult = await window.electronAPI.mkdir(folderPath);
+    if (mkdirResult.success) {
+      outputArea.textContent = `Created folder: ${folderName}`;
+      showToast(`Created folder ${folderName}`);
+      if (currentFolderPath) await loadAndDisplayFolder(currentFolderPath);
+    } else {
+      outputArea.textContent = `Error: ${mkdirResult.error}`;
+      showToast(`Failed to create folder ${folderName}`);
+    }
+  } catch (error) {
+    outputArea.textContent = `Error creating folder: ${error.message}`;
+    showToast(`Failed to create folder`);
+    console.error(`[renderer] Error creating folder: ${error.message}`);
   }
 }

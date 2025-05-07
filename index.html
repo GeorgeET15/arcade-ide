@@ -279,6 +279,33 @@
             </svg>
             Run
           </button>
+          <!-- Add to arcade-toolbar in index.html, after btn-play -->
+          <button
+            id="btn-package"
+            title="Package Game (Ctrl+P)"
+            class="arcade-button"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-package"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M12 3l8 4.5v9l-8 4.5l-8 -4.5v-9l8 -4.5" />
+              <path d="M12 12l8 -4.5" />
+              <path d="M12 12v9" />
+              <path d="M12 12l-8 -4.5" />
+              <path d="M16 5.25l-8 4.5" />
+            </svg>
+            Package
+          </button>
           <div class="spacer"></div>
           <div class="toolbar-right">
             <button
@@ -432,6 +459,12 @@
                   </svg>
                 </button>
               </div>
+            </div>
+            <div id="package-progress-container" style="display: none">
+              <div id="package-progress-bar">
+                <div id="package-progress-fill"></div>
+              </div>
+              <div id="package-progress-message"></div>
             </div>
             <pre id="output-area"></pre>
           </div>
@@ -628,7 +661,7 @@
           <input
             id="file-extensions"
             type="text"
-            placeholder="c,h,png,wav,makefile"
+            placeholder="c,h,png,wav,makefile,json,zip,exe"
           />
         </div>
         <div class="form-group">

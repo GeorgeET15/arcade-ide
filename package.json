@@ -26,9 +26,12 @@
   },
   "dependencies": {
     "@google/genai": "^0.10.0",
+    "archiver": "^7.0.1",
+    "archiver-utils": "^5.0.2",
     "axios": "^1.9.0",
     "monaco-editor": "^0.52.2",
     "play-sound": "^1.1.6",
+    "rcedit": "^4.0.1",
     "wavefile": "^11.0.0"
   },
   "build": {
@@ -54,7 +57,11 @@
       "completions/**/*",
       "CONTRIBUTING.md",
       "node_modules/monaco-editor/min/**/*",
-      "node_modules/@fortawesome/fontawesome-free/**/*"
+      "node_modules/@fortawesome/fontawesome-free/**/*",
+      "node_modules/archiver/**/*",
+      "node_modules/archiver-utils/**/*",
+      "node_modules/zip-stream/**/*",
+      "node_modules/**/*"
     ],
     "directories": {
       "output": "dist"

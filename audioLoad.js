@@ -10,6 +10,11 @@ document.addEventListener("DOMContentLoaded", () => {
       "music/4.mp3",
       "music/5.mp3",
       "music/6.mp3",
+      "music/7.mp3",
+      "music/8.mp3",
+      "music/9.mp3",
+      "music/10.mp3",
+      "music/11.mp3",
     ];
     const audio = document.getElementById("bg-music");
     const headphonesBtn = document.getElementById("btn-headphones");

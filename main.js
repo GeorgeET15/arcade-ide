@@ -8,10 +8,14 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
+const fsAll = require("fs");
 const { exec } = require("child_process");
 const util = require("util");
 const axios = require("axios");
 const { GoogleGenAI, Modality } = require("@google/genai");
+const archiver = require("archiver");
+const rcedit = require("rcedit"); // Ensure this is at the top with other requires
+const os = require("os");
 
 console.log("Main process starting...");
 console.log(`__dirname: ${__dirname}`);
@@ -158,7 +162,7 @@ async function createWindow() {
     try {
       await mainWindow.loadFile(indexPath);
       console.log("[main] index.html loaded successfully");
-      mainWindow.webContents.openDevTools();
+      //mainWindow.webContents.openDevTools();
     } catch (loadError) {
       console.error(`[main] Failed to load index.html: ${loadError.message}`);
       dialog.showErrorBox(
@@ -336,7 +340,7 @@ ipcMain.handle("dialog:openFile", async () => {
       filters: [
         {
           name: "Supported Files",
-          extensions: ["c", "h", "makefile", "png", "wav"],
+          extensions: ["c", "h", "makefile", "png", "wav", "json"],
         },
         { name: "All Files", extensions: ["*"] },
       ],
@@ -352,10 +356,28 @@ ipcMain.handle("dialog:openFile", async () => {
     let content = "";
     const ext = path.extname(filePath).toLowerCase();
 
-    // Read content for text-based files
-    if ([".txt", ".c", ".h", ".makefile"].includes(ext)) {
+    // Read content for text-based files, including JSON
+    if ([".txt", ".c", ".h", ".makefile", ".json"].includes(ext)) {
       try {
         content = await fs.readFile(filePath, "utf-8");
+        // Validate JSON if applicable
+        if (ext === ".json") {
+          try {
+            JSON.parse(content);
+            console.log(`[main] Valid JSON file read: ${filePath}`);
+          } catch (jsonError) {
+            console.warn(
+              `[main] Invalid JSON in ${filePath}: ${jsonError.message}`
+            );
+            return {
+              success: true,
+              filePath,
+              content,
+              warning: `Invalid JSON: ${jsonError.message}`,
+              canceled: false,
+            };
+          }
+        }
       } catch (readError) {
         console.error(
           `[main] Error reading file ${filePath}: ${readError.message}`
@@ -381,38 +403,44 @@ ipcMain.handle("dialog:openFile", async () => {
   }
 });
 
+// Update fs:readDir to ensure JSON files are included
 ipcMain.handle("fs:readDir", async (event, folderPath) => {
   console.log(`[main] IPC fs:readDir called with folderPath: ${folderPath}`);
   try {
     const entries = await fs.readdir(folderPath, { withFileTypes: true });
-    const allowedExtensions = config.fileExtensions || [
-      "c",
-      "h",
-      "makefile",
-      "png",
-      "wav",
-    ];
+    // Ensure json is always included in allowed extensions
+    const defaultExtensions = ["c", "h", "makefile", "png", "wav", "json"];
+    const allowedExtensions =
+      config.fileExtensions && config.fileExtensions.length > 0
+        ? [...new Set([...config.fileExtensions, "json"])] // Merge and ensure json
+        : defaultExtensions;
+    console.log(`[main] Allowed extensions: ${allowedExtensions.join(", ")}`);
+
     const files = entries
       .map((entry) => ({
         name: entry.name,
         isDir: entry.isDirectory(),
         path: path.join(folderPath, entry.name).replace(/\\/g, "/"),
       }))
-      .filter(
-        (f) =>
-          f.isDir ||
-          allowedExtensions.includes(
-            path.extname(f.name).toLowerCase().slice(1) || f.name.toLowerCase()
-          )
-      )
+      .filter((f) => {
+        if (f.isDir) return true;
+        const ext = path.extname(f.name).toLowerCase().slice(1);
+        const isAllowed =
+          allowedExtensions.includes(ext) ||
+          (f.name.toLowerCase() === "makefile" && !ext);
+        console.log(
+          `[main] File: ${f.name}, ext: ${ext || "none"}, allowed: ${isAllowed}`
+        );
+        return isAllowed;
+      })
       .filter((f) => !f.name.startsWith("."))
       .sort((a, b) => {
         if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
         return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       });
     console.log(
-      `[main] readDir returning ${files.length} files for ${folderPath}`,
-      files
+      `[main] readDir returning ${files.length} files for ${folderPath}:`,
+      files.map((f) => f.name)
     );
     return { success: true, files };
   } catch (error) {
@@ -456,6 +484,7 @@ ipcMain.handle("fs:saveFile", async (event, filePath, content) => {
             { name: "C Files", extensions: ["c"] },
             { name: "Header Files", extensions: ["h"] },
             { name: "Makefile", extensions: ["makefile"] },
+            { name: "JSON Files", extensions: ["json"] }, // Explicit JSON filter
             { name: "All Files", extensions: ["*"] },
           ],
         }
@@ -469,12 +498,28 @@ ipcMain.handle("fs:saveFile", async (event, filePath, content) => {
       filePath = selectedPath;
     }
 
+    // Validate JSON content if saving a .json file
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === ".json") {
+      try {
+        JSON.parse(content);
+        console.log(`[main] Valid JSON content for ${filePath}`);
+      } catch (jsonError) {
+        console.error(`[main] Invalid JSON content: ${jsonError.message}`);
+        return {
+          success: false,
+          error: `Invalid JSON: ${jsonError.message}`,
+          canceled: false,
+        };
+      }
+    }
+
     // Write content to the file
     await fs.writeFile(filePath, content, "utf-8");
     console.log(`[main] File saved successfully: ${filePath}`);
     return { success: true, filePath, canceled: false };
   } catch (error) {
-    console.error(`[main] Error saving file ${filePath}:`, error.message);
+    console.error(`[main] Error saving file ${filePath}: ${error.message}`);
     return { success: false, error: error.message, canceled: false };
   }
 });
@@ -519,10 +564,9 @@ ipcMain.handle("fs:deleteFile", async (event, filePath) => {
   }
 });
 
-ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
-  console.log(
-    `[main] IPC code:runOrBuild called with filePath: ${filePathToRun}`
-  );
+// Define the reusable runOrBuild function
+async function runOrBuild(event, filePathToRun, codeToRun) {
+  console.log(`[main] runOrBuild called with filePath: ${filePathToRun}`);
   if (!filePathToRun) {
     return {
       success: false,
@@ -591,19 +635,7 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
       }
     }
 
-    let shouldBuild = true;
-    if (await fileExists(makefilePath)) {
-      const choice = await dialog.showMessageBox(mainWindow, {
-        type: "question",
-        buttons: ["Overwrite", "Use Existing", "Cancel"],
-        message: "A Makefile already exists. Overwrite it?",
-        defaultId: 1,
-      });
-      if (choice.response === 2) {
-        return { success: false, output: "Build canceled." };
-      }
-      shouldBuild = choice.response === 0;
-    }
+    const shouldBuild = !(await fileExists(makefilePath));
 
     const escapedLibDir = libDir.replace(/\\/g, "/").replace(/"/g, '\\"');
     const escapedArcadeSource = arcadeSource
@@ -615,6 +647,7 @@ ipcMain.handle("code:runOrBuild", async (event, filePathToRun, codeToRun) => {
 
     let buildOutput = "";
     if (shouldBuild) {
+      console.log("[main] No existing Makefile found, creating a new one");
       const makefileContent = `
 CC = gcc
 CFLAGS = -Wall -I"${escapedLibDir}"
@@ -635,6 +668,8 @@ clean:
       console.log(`[main] Writing Makefile to: ${makefilePath}`);
       console.log("[main] Makefile content:\n", makefileContent);
       await fs.writeFile(makefilePath, makefileContent, "utf-8");
+    } else {
+      console.log("[main] Existing Makefile found, using it");
     }
 
     const makeCommand =
@@ -718,7 +753,191 @@ clean:
     console.error("[main] Error during build/play process:", error);
     return { success: false, output: `Error: ${error.message}` };
   }
-});
+}
+
+ipcMain.handle("code:runOrBuild", runOrBuild);
+
+async function buildOnly(event, filePathToRun, codeToRun) {
+  console.log(`[main] buildOnly called with filePath: ${filePathToRun}`);
+  const sendProgress = (progress, message) => {
+    mainWindow.webContents.send("package:progress", { progress, message });
+  };
+
+  if (!filePathToRun) {
+    sendProgress(20, "Error: Cannot build. File needs to be saved first.");
+    return {
+      success: false,
+      output: "Error: Cannot build. File needs to be saved first.",
+    };
+  }
+
+  try {
+    console.log(`[main] Ensuring file is saved: ${filePathToRun}`);
+    await fs.writeFile(filePathToRun, codeToRun, "utf-8");
+    sendProgress(25, "Saved source file");
+
+    const dir = path.dirname(filePathToRun);
+    const parsedPath = path.parse(filePathToRun);
+    const gameName = parsedPath.name; // This will be overridden by gameName from config in code:package
+    const executableName =
+      process.platform === "win32" ? `${gameName}.exe` : gameName;
+    const executablePath = path.join(dir, executableName);
+    const makefilePath = path.join(dir, "Makefile");
+    const libDir = path.join(__dirname, "lib");
+    const arcadeSource = path.join(libDir, "arcade.c");
+    const arcadeHeader = path.join(libDir, "arcade.h");
+    const stbHeaders = [
+      "stb_image.h",
+      "stb_image_write.h",
+      "stb_image_resize2.h",
+    ].map((file) => path.join(libDir, file));
+
+    console.log(`[main] Checking arcade library files in: ${libDir}`);
+    if (!(await fileExists(arcadeSource))) {
+      console.error(`[main] Arcade source not found at: ${arcadeSource}`);
+      dialog.showErrorBox(
+        "Build Error",
+        `arcade.c not found at ${arcadeSource}. Ensure the lib directory contains arcade.c.`
+      );
+      sendProgress(20, `Error: arcade.c not found at ${arcadeSource}`);
+      return {
+        success: false,
+        output: `Error: arcade.c not found at ${arcadeSource}. Ensure the lib directory contains arcade.c.`,
+      };
+    }
+    if (!(await fileExists(arcadeHeader))) {
+      console.error(`[main] Arcade header not found at: ${arcadeHeader}`);
+      dialog.showErrorBox(
+        "Build Error",
+        `arcade.h not found at ${arcadeHeader}. Ensure the lib directory contains arcade.h.`
+      );
+      sendProgress(20, `Error: arcade.h not found at ${arcadeHeader}`);
+      return {
+        success: false,
+        output: `Error: arcade.h not found at ${arcadeHeader}. Ensure the lib directory contains arcade.h.`,
+      };
+    }
+    for (const header of stbHeaders) {
+      if (!(await fileExists(header))) {
+        console.error(`[main] STB header not found at: ${header}`);
+        dialog.showErrorBox(
+          "Build Error",
+          `STB header (${path.basename(
+            header
+          )}) not found at ${header}. Ensure all STB headers are present in lib.`
+        );
+        sendProgress(
+          20,
+          `Error: STB header (${path.basename(header)}) not found at ${header}`
+        );
+        return {
+          success: false,
+          output: `Error: STB header (${path.basename(
+            header
+          )}) not found at ${header}. Ensure all STB headers are present in lib.`,
+        };
+      }
+    }
+
+    sendProgress(30, "Validated library files");
+
+    const shouldBuild = !(await fileExists(makefilePath));
+
+    const escapedLibDir = libDir.replace(/\\/g, "/").replace(/"/g, '\\"');
+    const escapedArcadeSource = arcadeSource
+      .replace(/\\/g, "/")
+      .replace(/"/g, '\\"');
+    const escapedFilePathToRun = filePathToRun
+      .replace(/\\/g, "/")
+      .replace(/"/g, '\\"');
+
+    let buildOutput = "";
+    if (shouldBuild) {
+      console.log("[main] No existing Makefile found, creating a new one");
+      const makefileContent = `
+CC = gcc
+CFLAGS = -Wall -I"${escapedLibDir}"
+TARGET = ${gameName}
+
+ifeq ($(OS),Windows_NT)
+    LIBS = -lgdi32 -lwinmm
+else
+    LIBS = -lX11 -lm
+endif
+
+all:
+	$(CC) $(CFLAGS) -o "$(TARGET)" "${escapedFilePathToRun}" "${escapedArcadeSource}" $(LIBS)
+
+clean:
+	rm -f "$(TARGET)" *.o
+`;
+      console.log(`[main] Writing Makefile to: ${makefilePath}`);
+      console.log("[main] Makefile content:\n", makefileContent);
+      await fs.writeFile(makefilePath, makefileContent, "utf-8");
+      sendProgress(35, "Created Makefile");
+    } else {
+      console.log("[main] Existing Makefile found, using it");
+      sendProgress(35, "Using existing Makefile");
+    }
+
+    const makeCommand =
+      config.buildToolPath ||
+      (process.platform === "win32" ? "mingw32-make" : "make");
+    const env = { ...process.env, TARGET: gameName };
+    console.log(
+      `[main] Running Makefile: ${makeCommand} in ${dir} with TARGET=${gameName}`
+    );
+    buildOutput = `> ${makeCommand}\n`;
+    let buildSuccess = false;
+
+    try {
+      const { stdout, stderr } = await execPromise(makeCommand, {
+        cwd: dir,
+        env,
+      });
+      buildOutput += `${stdout}\n${stderr}`;
+      buildSuccess =
+        !stderr.toLowerCase().includes("error:") &&
+        !stdout.toLowerCase().includes("error:");
+      sendProgress(45, "Compilation completed");
+    } catch (makeError) {
+      console.error(`[main] Make execution error: ${makeError}`);
+      buildOutput += `Build Failed:\n${
+        makeError.stderr || makeError.stdout || makeError.message
+      }`;
+      sendProgress(20, `Build failed: ${makeError.message}`);
+      return { success: false, output: buildOutput };
+    }
+
+    if (!buildSuccess) {
+      console.error("[main] Build failed, output:\n", buildOutput);
+      sendProgress(20, "Build failed");
+      return { success: false, output: buildOutput };
+    }
+
+    console.log(`[main] Checking for executable at: ${executablePath}`);
+    if (!(await fileExists(executablePath))) {
+      buildOutput += `\nBuild successful, but executable (${executableName}) not found at ${executablePath}.`;
+      try {
+        const files = await fs.readdir(dir);
+        console.log(`[main] Directory contents: ${files.join(", ")}`);
+        buildOutput += `\nDirectory contents: ${files.join(", ")}`;
+      } catch (dirError) {
+        console.error(`[main] Error reading directory: ${dirError}`);
+        buildOutput += `\nError reading directory: ${dirError.message}`;
+      }
+      sendProgress(20, `Executable not found at ${executablePath}`);
+      return { success: true, output: buildOutput };
+    }
+
+    sendProgress(50, "Build successful, executable created");
+    return { success: true, output: buildOutput };
+  } catch (error) {
+    console.error("[main] Error during build process:", error);
+    sendProgress(20, `Build error: ${error.message}`);
+    return { success: false, output: `Error: ${error.message}` };
+  }
+}
 
 ipcMain.handle("project:newArcade", async (event, folderPath) => {
   console.log(
@@ -800,6 +1019,7 @@ ipcMain.handle("icon:getClass", (event, fileName, isDir) => {
     wav: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-file-music"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M11 16m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 16l0 -5l2 1" /></svg>`,
     txt: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-file-type-txt"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M16.5 15h3" /><path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" /><path d="M4.5 15h3" /><path d="M6 15v6" /><path d="M18 15v6" /><path d="M10 15l4 6" /><path d="M10 21l4 -6" /></svg>`,
     makefile: `<svg  xmlns="http://www.w3.org/2000/svg"  width="16"  height="16"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-file-3d"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M12 13.5l4 -1.5" /><path d="M8 11.846l4 1.654v4.5l4 -1.846v-4.308l-4 -1.846z" /><path d="M8 12v4.2l4 1.8" /></svg>`,
+    json: `<svg  xmlns="http://www.w3.org/2000/svg"  width="16"  height="16"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-json"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 16v-8l3 8v-8" /><path d="M15 8a2 2 0 0 1 2 2v4a2 2 0 1 1 -4 0v-4a2 2 0 0 1 2 -2z" /><path d="M1 8h3v6.5a1.5 1.5 0 0 1 -3 0v-.5" /><path d="M7 15a1 1 0 0 0 1 1h1a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-1a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h1a1 1 0 0 1 1 1" /></svg>`,
   };
   const iconSvg = iconMap[ext] || (isDir ? iconMap.folder : iconMap.txt);
   console.log(`[main] Returning icon SVG for ${ext}`);
@@ -872,6 +1092,265 @@ ipcMain.handle("dialog:showInput", async (event, options) => {
   } catch (error) {
     console.error(`[main] Error in dialog:showInput: ${error.message}`);
     return { error: error.message };
+  }
+});
+
+ipcMain.handle("code:package", async (event, folderPath) => {
+  console.log(`[main] IPC code:package called for ${folderPath}`);
+  // Helper function to send progress updates
+  const sendProgress = (progress, message) => {
+    mainWindow.webContents.send("package:progress", { progress, message });
+  };
+
+  let tempDir = null;
+  try {
+    sendProgress(0, "Starting packaging process...");
+
+    const configPath = path.join(folderPath, "arcade.config.json");
+    const configExists = await fs
+      .access(configPath)
+      .then(() => true)
+      .catch(() => false);
+    if (!configExists) {
+      console.error("[main] arcade.config.json not found");
+      sendProgress(100, "Packaging failed: arcade.config.json not found");
+      return { success: false, error: "arcade.config.json not found" };
+    }
+    const configContent = await fs.readFile(configPath, "utf8");
+    let config;
+    try {
+      config = JSON.parse(configContent);
+    } catch (error) {
+      console.error("[main] Invalid arcade.config.json:", error.message);
+      sendProgress(100, `Packaging failed: Invalid arcade.config.json`);
+      return {
+        success: false,
+        error: `Invalid arcade.config.json: ${error.message}`,
+      };
+    }
+    const { gameName, version, binaryName, iconPath = "" } = config;
+    if (!gameName || !version) {
+      console.error("[main] Missing required fields in arcade.config.json");
+      sendProgress(
+        100,
+        "Packaging failed: Missing required fields in arcade.config.json"
+      );
+      return {
+        success: false,
+        error:
+          "Missing required fields in arcade.config.json (gameName, version)",
+      };
+    }
+
+    sendProgress(10, "Validated arcade.config.json");
+
+    // Check if game.c exists
+    const gameCPath = path.join(folderPath, "game.c");
+    if (!(await fileExists(gameCPath))) {
+      console.error(`[main] game.c not found at ${gameCPath}`);
+      sendProgress(100, `Packaging failed: game.c not found`);
+      return {
+        success: false,
+        error: `game.c not found at ${gameCPath}`,
+      };
+    }
+
+    // Read the existing game.c content
+    let gameCContent;
+    try {
+      gameCContent = await fs.readFile(gameCPath, "utf-8");
+      console.log(
+        `[main] Read game.c content, length: ${gameCContent.length} characters`
+      );
+    } catch (readError) {
+      console.error(`[main] Failed to read game.c: ${readError.message}`);
+      sendProgress(100, `Packaging failed: Failed to read game.c`);
+      return {
+        success: false,
+        error: `Failed to read game.c: ${readError.message}`,
+      };
+    }
+
+    sendProgress(20, "Read game.c content");
+
+    // Call buildOnly with progress updates
+    const buildResult = await buildOnly(event, gameCPath, gameCContent);
+    if (!buildResult.success) {
+      console.error("[main] Compilation failed:", buildResult.error);
+      sendProgress(
+        100,
+        `Packaging failed: Compilation failed: ${buildResult.error}`
+      );
+      return {
+        success: false,
+        error: `Compilation failed: ${buildResult.error}`,
+        output: buildResult.output || "No output from build process",
+      };
+    }
+
+    sendProgress(50, "Code compiled successfully");
+
+    const isWindows = process.platform === "win32";
+    const binaryFileName = isWindows ? `${binaryName}.exe` : binaryName;
+    const binaryPath = path.join(folderPath, binaryFileName);
+    console.log(`[main] Checking for binary at ${binaryPath}`);
+
+    const binaryExists = await fs
+      .access(binaryPath)
+      .then(() => true)
+      .catch(() => false);
+    if (!binaryExists) {
+      console.error(`[main] Game binary not found at ${binaryPath}`);
+      sendProgress(100, `Packaging failed: Game binary not found`);
+      return {
+        success: false,
+        error: `Game binary not found: ${binaryFileName}`,
+        output: buildResult.output || "No output from build process",
+      };
+    }
+
+    sendProgress(60, "Verified game binary");
+
+    // Create temporary directory for intermediate files
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "arcade-package-"));
+    console.log(`[main] Created temporary directory: ${tempDir}`);
+
+    // Create dist directory
+    const outputDir = path.join(folderPath, "dist");
+    await fs.mkdir(outputDir, { recursive: true });
+
+    // Create a version file
+    const versionFilePath = path.join(tempDir, "version");
+    try {
+      await fs.writeFile(versionFilePath, version, "utf-8");
+      console.log(`[main] Created version file at ${versionFilePath}`);
+    } catch (versionError) {
+      console.error(
+        `[main] Failed to create version file: ${versionError.message}`
+      );
+      sendProgress(100, `Packaging failed: Failed to create version file`);
+      return {
+        success: false,
+        error: `Failed to create version file: ${versionError.message}`,
+      };
+    }
+
+    sendProgress(65, "Created version file");
+
+    // Rename binary to use gameName
+    const finalBinaryName = isWindows ? `${gameName}.exe` : gameName;
+    const finalBinaryPath = path.join(tempDir, finalBinaryName);
+    try {
+      await fs.copyFile(binaryPath, finalBinaryPath);
+      console.log(`[main] Copied binary to ${finalBinaryPath}`);
+    } catch (copyError) {
+      console.error(`[main] Failed to copy binary: ${copyError.message}`);
+      sendProgress(100, `Packaging failed: Failed to copy binary`);
+      return {
+        success: false,
+        error: `Failed to copy binary: ${copyError.message}`,
+      };
+    }
+
+    sendProgress(70, "Renamed binary to game name");
+
+    // Embed icon in binary (Windows) or prepare .desktop file (Linux)
+    let desktopFilePath = null;
+    if (
+      isWindows &&
+      iconPath &&
+      (await fileExists(path.join(folderPath, iconPath)))
+    ) {
+      try {
+        await rcedit(finalBinaryPath, {
+          icon: path.join(folderPath, iconPath),
+        });
+        console.log(`[main] Embedded icon into ${finalBinaryPath}`);
+      } catch (rceditError) {
+        console.warn(`[main] Failed to embed icon: ${rceditError.message}`);
+        // Continue packaging, icon will still be included in zip
+      }
+    } else if (
+      !isWindows &&
+      iconPath &&
+      (await fileExists(path.join(folderPath, iconPath)))
+    ) {
+      desktopFilePath = path.join(tempDir, `${gameName}.desktop`);
+      const desktopContent = `[Desktop Entry]
+Name=${gameName}
+Exec=${finalBinaryName}
+Type=Application
+Icon=${path.basename(iconPath)}
+Terminal=false
+Categories=Game;
+`;
+      try {
+        await fs.writeFile(desktopFilePath, desktopContent, "utf-8");
+        console.log(`[main] Created .desktop file at ${desktopFilePath}`);
+      } catch (desktopError) {
+        console.warn(
+          `[main] Failed to create .desktop file: ${desktopError.message}`
+        );
+        // Continue packaging, icon will still be included in zip
+      }
+    }
+
+    sendProgress(75, "Processed icon for binary");
+
+    // Create zip file
+    const zipPath = path.join(outputDir, `${gameName}-${version}.zip`);
+    console.log(`[main] Creating zip at ${zipPath}`);
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    const output = fsAll.createWriteStream(zipPath);
+    archive.pipe(output);
+    archive.file(finalBinaryPath, { name: finalBinaryName });
+    archive.file(versionFilePath, { name: "version" });
+    if (
+      iconPath &&
+      (await fs
+        .access(path.join(folderPath, iconPath))
+        .then(() => true)
+        .catch(() => false))
+    ) {
+      archive.file(path.join(folderPath, iconPath), {
+        name: path.basename(iconPath),
+      });
+      console.log(`[main] Included icon at ${iconPath} in zip`);
+    }
+    if (desktopFilePath) {
+      archive.file(desktopFilePath, { name: `${gameName}.desktop` });
+      console.log(`[main] Included .desktop file in zip`);
+    }
+    archive.directory(path.join(folderPath, "assets"), "assets");
+    await archive.finalize();
+
+    sendProgress(100, `Package generated at ${zipPath}`);
+    console.log(`[main] Package generated successfully at ${zipPath}`);
+
+    // Clean up temporary directory
+    await fs.rm(tempDir, { recursive: true, force: true });
+    console.log(`[main] Cleaned up temporary directory: ${tempDir}`);
+
+    const outputMessage = `Package generated at ${zipPath}. ${
+      isWindows
+        ? "Icon embedded in binary (if provided)."
+        : "Use the .desktop file to set the icon for launchers."
+    }`;
+    return {
+      success: true,
+      output: outputMessage,
+    };
+  } catch (error) {
+    console.error(`[main] Error in code:package: ${error.message}`);
+    sendProgress(100, `Packaging failed: ${error.message}`);
+    if (tempDir) {
+      await fs
+        .rm(tempDir, { recursive: true, force: true })
+        .catch((err) =>
+          console.warn(`[main] Failed to clean up temp dir: ${err.message}`)
+        );
+    }
+    return { success: false, error: error.message };
   }
 });
 

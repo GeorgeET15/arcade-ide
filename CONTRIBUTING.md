@@ -19,7 +19,7 @@ Thank you for your interest in contributing to Arcade IDE! We welcome contributi
      ```bash
      git checkout -b feature/your-feature-name
      ```
-   - Use descriptive branch names (e.g., `fix/file-tree-bug`, `feature/new-theme`).
+   - Use descriptive branch names (e.g., `fix/file-tree-bug`, `feature/ai-sprite-enhancement`).
 
 3. **Make Changes**:
 
@@ -57,9 +57,11 @@ Thank you for your interest in contributing to Arcade IDE! We welcome contributi
 ## Coding Standards
 
 - **JavaScript**:
-  - Use ES6+ syntax.
+  - Use ES6+ syntax and target Electron 20+ for compatibility.
   - Follow consistent formatting (use Prettier or similar).
-  - Add comments for complex logic.
+  - Add comments for complex logic, especially in IPC handlers.
+  - Use `contextBridge` in `preload.js` for secure renderer-main communication.
+  - Normalize file paths with forward slashes (`/`) for cross-platform consistency (e.g., `path.join(...).replace(/\\/g, "/")`).
 - **CSS**:
   - Use CSS variables (e.g., `--primary-foreground`) for theme consistency.
   - Keep styles modular and scoped to components.
@@ -72,27 +74,38 @@ Thank you for your interest in contributing to Arcade IDE! We welcome contributi
     npm run make:win
     npm run make:linux
     ```
-  - Ensure the file tree, Monaco Editor, and `arcade.h` integration work as expected.
+  - Verify the file tree, Monaco Editor, `arcade.h` integration, and AI sprite generator (with valid Gemini and Remove.bg API keys).
+  - Ensure JSON config files (e.g., `arcade.config.json`) are validated correctly.
+  - Test error handling for file operations and compilation.
 
 ## Contribution Types
 
-- **Bug Fixes**: Fix issues in the file tree, editor, or build process.
-- **Features**: Add new functionality (e.g., new themes, tools, or `arcade.h` integrations).
-- **Documentation**: Improve `README.md`, code comments, or tutorials.
-- **Maintenance**: Update dependencies, refactor code, or optimize performance.
+- **Bug Fixes**:
+  - Example: Fix a file tree refresh issue when renaming files.
+  - Example: Resolve compilation errors due to missing build tools.
+- **Features**:
+  - Example: Add a new retro theme for the UI.
+  - Example: Enhance the AI sprite generator with additional customization options.
+- **Documentation**:
+  - Example: Update `README.md` with clearer installation steps.
+  - Example: Add tutorials for using `arcade.h` with Arcade IDE.
+- **Maintenance**:
+  - Example: Update Electron or other dependencies to newer versions.
+  - Example: Refactor IPC handlers for better performance.
 
 ## Licensing
 
-By contributing to Arcade IDE, you agree to license your contributions under the [MIT License](LICENSE). Ensure your contributions do not include proprietary or unlicensed code.
+By contributing to Arcade IDE, you agree to license your contributions under the [MIT License](https://github.com/GeorgeET15/arcade-ide/blob/main/LICENSE) and certify that your contributions comply with the [Developer Certificate of Origin (DCO)](https://developercertificate.org/). Ensure your contributions do not include proprietary or unlicensed code.
 
 ## Community Guidelines
 
 - Be respectful and inclusive in all interactions.
 - Report issues or suggest features via [GitHub Issues](https://github.com/GeorgeET15/arcade-ide/issues).
-- Follow the [Code of Conduct](CODE_OF_CONDUCT.md) (to be added).
+- Join discussions in [GitHub Discussions](https://github.com/GeorgeET15/arcade-ide/discussions) to share ideas or ask questions.
+- Follow the [Code of Conduct](https://github.com/GeorgeET15/arcade-ide/blob/main/CODE_OF_CONDUCT.md) (if not yet created, adhere to general open-source principles of respect and collaboration).
 
 ## Questions?
 
-Contact GeorgeET15 via [GitHub Issues](https://github.com/GeorgeET15/arcade-ide) or email at georgeet15@example.com.
+Contact GeorgeET15 via [GitHub Issues](https://github.com/GeorgeET15/arcade-ide/issues), [GitHub Discussions](https://github.com/GeorgeET15/arcade-ide/discussions), or email at georgeemmanuelthomas@gmail.com.
 
 Thank you for helping make Arcade IDE awesome!
