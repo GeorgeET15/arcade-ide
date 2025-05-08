@@ -579,8 +579,24 @@ async function runOrBuild(event, filePathToRun, codeToRun) {
     await fs.writeFile(filePathToRun, codeToRun, "utf-8");
 
     const dir = path.dirname(filePathToRun);
-    const parsedPath = path.parse(filePathToRun);
-    const gameName = parsedPath.name;
+    const configPath = path.join(dir, "arcade.config.json");
+
+    // Read arcade.config.json to get the main file
+    let mainFileName = "main.c"; // Fallback
+    let gameName = path.basename(filePathToRun, ".c"); // Default from file
+    try {
+      const configContent = await fs.readFile(configPath, "utf-8");
+      const projectConfig = JSON.parse(configContent);
+      mainFileName = projectConfig.main || mainFileName;
+      gameName = projectConfig.binaryName || gameName;
+      console.log(`[main] Using main file from config: ${mainFileName}`);
+    } catch (configError) {
+      console.warn(
+        `[main] Failed to read arcade.config.json: ${configError.message}, using default main.c`
+      );
+    }
+
+    const mainFilePath = path.join(dir, mainFileName);
     const executableName =
       process.platform === "win32" ? `${gameName}.exe` : gameName;
     const executablePath = path.join(dir, executableName);
@@ -641,7 +657,7 @@ async function runOrBuild(event, filePathToRun, codeToRun) {
     const escapedArcadeSource = arcadeSource
       .replace(/\\/g, "/")
       .replace(/"/g, '\\"');
-    const escapedFilePathToRun = filePathToRun
+    const escapedMainFile = mainFilePath
       .replace(/\\/g, "/")
       .replace(/"/g, '\\"');
 
@@ -660,7 +676,7 @@ else
 endif
 
 all:
-	$(CC) $(CFLAGS) -o "$(TARGET)" "${escapedFilePathToRun}" "${escapedArcadeSource}" $(LIBS)
+	$(CC) $(CFLAGS) -o "$(TARGET)" "${escapedMainFile}" "${escapedArcadeSource}" $(LIBS)
 
 clean:
 	rm -f "$(TARGET)" *.o
@@ -777,8 +793,24 @@ async function buildOnly(event, filePathToRun, codeToRun) {
     sendProgress(25, "Saved source file");
 
     const dir = path.dirname(filePathToRun);
-    const parsedPath = path.parse(filePathToRun);
-    const gameName = parsedPath.name; // This will be overridden by gameName from config in code:package
+    const configPath = path.join(dir, "arcade.config.json");
+
+    // Read arcade.config.json to get the main file
+    let mainFileName = "main.c"; // Fallback
+    let gameName = path.basename(filePathToRun, ".c"); // Default
+    try {
+      const configContent = await fs.readFile(configPath, "utf-8");
+      const projectConfig = JSON.parse(configContent);
+      mainFileName = projectConfig.main || mainFileName;
+      gameName = projectConfig.binaryName || gameName;
+      console.log(`[main] Using main file from config: ${mainFileName}`);
+    } catch (configError) {
+      console.warn(
+        `[main] Failed to read arcade.config.json: ${configError.message}, using default main.c`
+      );
+    }
+
+    const mainFilePath = path.join(dir, mainFileName);
     const executableName =
       process.platform === "win32" ? `${gameName}.exe` : gameName;
     const executablePath = path.join(dir, executableName);
@@ -847,7 +879,7 @@ async function buildOnly(event, filePathToRun, codeToRun) {
     const escapedArcadeSource = arcadeSource
       .replace(/\\/g, "/")
       .replace(/"/g, '\\"');
-    const escapedFilePathToRun = filePathToRun
+    const escapedMainFile = mainFilePath
       .replace(/\\/g, "/")
       .replace(/"/g, '\\"');
 
@@ -866,7 +898,7 @@ else
 endif
 
 all:
-	$(CC) $(CFLAGS) -o "$(TARGET)" "${escapedFilePathToRun}" "${escapedArcadeSource}" $(LIBS)
+	$(CC) $(CFLAGS) -o "$(TARGET)" "${escapedMainFile}" "${escapedArcadeSource}" $(LIBS)
 
 clean:
 	rm -f "$(TARGET)" *.o
@@ -939,26 +971,33 @@ clean:
   }
 }
 
-ipcMain.handle("project:newArcade", async (event, folderPath) => {
-  console.log(
-    `[main] IPC project:newArcade called with folderPath: ${folderPath}`
-  );
-  try {
-    await fs.mkdir(folderPath, { recursive: true });
+ipcMain.handle(
+  "project:newArcade",
+  async (event, folderPath, mainFileName = "main.c") => {
+    console.log(
+      `[main] IPC project:newArcade called with folderPath: ${folderPath}, mainFileName: ${mainFileName}`
+    );
+    try {
+      await fs.mkdir(folderPath, { recursive: true });
 
-    const escapedLibDir = path
-      .join(__dirname, "lib")
-      .replace(/\\/g, "/")
-      .replace(/"/g, '\\"');
-    const escapedArcadeSource = path
-      .join(__dirname, "lib", "arcade.c")
-      .replace(/\\/g, "/")
-      .replace(/"/g, '\\"');
+      const escapedLibDir = path
+        .join(__dirname, "lib")
+        .replace(/\\/g, "/")
+        .replace(/"/g, '\\"');
+      const escapedArcadeSource = path
+        .join(__dirname, "lib", "arcade.c")
+        .replace(/\\/g, "/")
+        .replace(/"/g, '\\"');
+      const escapedMainFile = path
+        .join(folderPath, mainFileName)
+        .replace(/\\/g, "/")
+        .replace(/"/g, '\\"');
+      const targetName = path.basename(mainFileName, ".c");
 
-    const makefileContent = `
+      const makefileContent = `
 CC = gcc
 CFLAGS = -Wall -I"${escapedLibDir}"
-TARGET = game
+TARGET = ${targetName}
 
 ifeq ($(OS),Windows_NT)
     LIBS = -lgdi32 -lwinmm
@@ -967,34 +1006,54 @@ else
 endif
 
 all:
-	$(CC) $(CFLAGS) -o "$(TARGET)" game.c "${escapedArcadeSource}" $(LIBS)
+	$(CC) $(CFLAGS) -o "$(TARGET)" "${escapedMainFile}" "${escapedArcadeSource}" $(LIBS)
 
 clean:
 	rm -f "$(TARGET)" *.o
 `;
-    const sampleCode = `#include "arcade.h"\n\nint main() {\n  arcade_init(800, 600, "My Game", 0x000000);\n  while (arcade_running()) {\n    arcade_update();\n    arcade_render_scene(NULL, 0, NULL);\n  }\n  arcade_quit();\n  return 0;\n}\n`;
+      const sampleCode = `#include "arcade.h"\n\nint main() {\n  arcade_init(800, 600, "My Game", 0x000000);\n  while (arcade_running()) {\n    arcade_update();\n    arcade_render_scene(NULL, 0, NULL);\n  }\n  arcade_quit();\n  return 0;\n}\n`;
 
-    await fs.writeFile(
-      path.join(folderPath, "Makefile"),
-      makefileContent,
-      "utf-8"
-    );
-    await fs.writeFile(path.join(folderPath, "game.c"), sampleCode, "utf-8");
+      // Create arcade.config.json with the main attribute
+      const configContent = {
+        gameName: path.basename(folderPath),
+        main: mainFileName,
+        version: "1.0.0",
+        binaryName: targetName,
+        iconPath: "",
+        author: "",
+        description: "",
+      };
 
-    await fs.mkdir(path.join(folderPath, "assets"), { recursive: true });
+      await fs.writeFile(
+        path.join(folderPath, "arcade.config.json"),
+        JSON.stringify(configContent, null, 2),
+        "utf-8"
+      );
+      await fs.writeFile(
+        path.join(folderPath, "Makefile"),
+        makefileContent,
+        "utf-8"
+      );
+      await fs.writeFile(
+        path.join(folderPath, mainFileName),
+        sampleCode,
+        "utf-8"
+      );
+      await fs.mkdir(path.join(folderPath, "assets"), { recursive: true });
 
-    config.recentFolders = config.recentFolders || [];
-    config.recentFolders = [
-      ...new Set([folderPath, ...config.recentFolders]),
-    ].slice(0, 5);
-    await saveConfig();
+      config.recentFolders = config.recentFolders || [];
+      config.recentFolders = [
+        ...new Set([folderPath, ...config.recentFolders]),
+      ].slice(0, 5);
+      await saveConfig();
 
-    return { success: true, folderPath };
-  } catch (error) {
-    console.error("[main] Error creating Arcade project:", error);
-    return { success: false, error: error.message };
+      return { success: true, folderPath, mainFileName };
+    } catch (error) {
+      console.error("[main] Error creating Arcade project:", error);
+      return { success: false, error: error.message };
+    }
   }
-});
+);
 
 ipcMain.handle("project:newArcadeProject", async (event, folderPath) => {
   console.log(
@@ -1097,7 +1156,6 @@ ipcMain.handle("dialog:showInput", async (event, options) => {
 
 ipcMain.handle("code:package", async (event, folderPath) => {
   console.log(`[main] IPC code:package called for ${folderPath}`);
-  // Helper function to send progress updates
   const sendProgress = (progress, message) => {
     mainWindow.webContents.send("package:progress", { progress, message });
   };
@@ -1128,8 +1186,8 @@ ipcMain.handle("code:package", async (event, folderPath) => {
         error: `Invalid arcade.config.json: ${error.message}`,
       };
     }
-    const { gameName, version, binaryName, iconPath = "" } = config;
-    if (!gameName || !version) {
+    const { gameName, main, version, binaryName, iconPath = "" } = config;
+    if (!gameName || !version || !main) {
       console.error("[main] Missing required fields in arcade.config.json");
       sendProgress(
         100,
@@ -1138,43 +1196,43 @@ ipcMain.handle("code:package", async (event, folderPath) => {
       return {
         success: false,
         error:
-          "Missing required fields in arcade.config.json (gameName, version)",
+          "Missing required fields in arcade.config.json (gameName, main, version)",
       };
     }
 
     sendProgress(10, "Validated arcade.config.json");
 
-    // Check if game.c exists
-    const gameCPath = path.join(folderPath, "game.c");
-    if (!(await fileExists(gameCPath))) {
-      console.error(`[main] game.c not found at ${gameCPath}`);
-      sendProgress(100, `Packaging failed: game.c not found`);
+    // Check if the main file exists
+    const mainFilePath = path.join(folderPath, main);
+    if (!(await fileExists(mainFilePath))) {
+      console.error(`[main] Main file not found at ${mainFilePath}`);
+      sendProgress(100, `Packaging failed: Main file not found`);
       return {
         success: false,
-        error: `game.c not found at ${gameCPath}`,
+        error: `Main file not found at ${mainFilePath}`,
       };
     }
 
-    // Read the existing game.c content
-    let gameCContent;
+    // Read the main file content
+    let mainFileContent;
     try {
-      gameCContent = await fs.readFile(gameCPath, "utf-8");
+      mainFileContent = await fs.readFile(mainFilePath, "utf-8");
       console.log(
-        `[main] Read game.c content, length: ${gameCContent.length} characters`
+        `[main] Read main file content, length: ${mainFileContent.length} characters`
       );
     } catch (readError) {
-      console.error(`[main] Failed to read game.c: ${readError.message}`);
-      sendProgress(100, `Packaging failed: Failed to read game.c`);
+      console.error(`[main] Failed to read main file: ${readError.message}`);
+      sendProgress(100, `Packaging failed: Failed to read main file`);
       return {
         success: false,
-        error: `Failed to read game.c: ${readError.message}`,
+        error: `Failed to read main file: ${readError.message}`,
       };
     }
 
-    sendProgress(20, "Read game.c content");
+    sendProgress(20, "Read main file content");
 
     // Call buildOnly with progress updates
-    const buildResult = await buildOnly(event, gameCPath, gameCContent);
+    const buildResult = await buildOnly(event, mainFilePath, mainFileContent);
     if (!buildResult.success) {
       console.error("[main] Compilation failed:", buildResult.error);
       sendProgress(
@@ -1268,7 +1326,6 @@ ipcMain.handle("code:package", async (event, folderPath) => {
         console.log(`[main] Embedded icon into ${finalBinaryPath}`);
       } catch (rceditError) {
         console.warn(`[main] Failed to embed icon: ${rceditError.message}`);
-        // Continue packaging, icon will still be included in zip
       }
     } else if (
       !isWindows &&
@@ -1291,7 +1348,6 @@ Categories=Game;
         console.warn(
           `[main] Failed to create .desktop file: ${desktopError.message}`
         );
-        // Continue packaging, icon will still be included in zip
       }
     }
 
