@@ -74,6 +74,15 @@ define([], function () {
               range: range,
             },
             {
+              label: "arcade_delta_time",
+              kind: monaco.languages.CompletionItemKind.Function,
+              insertText: "arcade_delta_time()$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Gets time between frames.",
+              range: range,
+            },
+            {
               label: "arcade_key_pressed",
               kind: monaco.languages.CompletionItemKind.Function,
               insertText:
@@ -317,6 +326,15 @@ define([], function () {
               range: range,
             },
             {
+              label: "arcade_stop_sound",
+              kind: monaco.languages.CompletionItemKind.Function,
+              insertText: "arcade_stop_sound()$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Stop a WAV audio file asynchronously.",
+              range: range,
+            },
+            {
               label: "arcade_flip_image",
               kind: monaco.languages.CompletionItemKind.Function,
               insertText: 'arcade_flip_image(${1:"sprite.png"}, ${2|0,1|})$0',
@@ -447,75 +465,624 @@ define([], function () {
               range: range,
             },
             {
-              label: "a_w",
+              label: "a_b",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_w$0",
+              insertText: "a_b$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for W key (0x0077).",
+              documentation: "Key code for B key (0x0062).",
               range: range,
             },
             {
-              label: "a_a",
+              label: "a_c",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_a$0",
+              insertText: "a_c$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for A key (0x0061).",
+              documentation: "Key code for C key (0x0063).",
               range: range,
             },
             {
-              label: "a_s",
+              label: "a_e",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_s$0",
+              insertText: "a_e$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for S key (0x0073).",
+              documentation: "Key code for E key (0x0065).",
               range: range,
             },
             {
-              label: "a_d",
+              label: "a_f",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_d$0",
+              insertText: "a_f$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for D key (0x0064).",
+              documentation: "Key code for F key (0x0066).",
               range: range,
             },
             {
-              label: "a_r",
+              label: "a_g",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_r$0",
+              insertText: "a_g$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for R key (0x0072).",
+              documentation: "Key code for G key (0x0067).",
               range: range,
             },
             {
-              label: "a_p",
+              label: "a_h",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_p$0",
+              insertText: "a_h$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for P key (0x0070).",
+              documentation: "Key code for H key (0x0068).",
               range: range,
             },
             {
-              label: "a_space",
+              label: "a_i",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_space$0",
+              insertText: "a_i$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for spacebar (0x0020).",
+              documentation: "Key code for I key (0x0069).",
               range: range,
             },
             {
-              label: "a_esc",
+              label: "a_j",
               kind: monaco.languages.CompletionItemKind.Constant,
-              insertText: "a_esc$0",
+              insertText: "a_j$0",
               insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "Key code for escape key (0xff1b).",
+              documentation: "Key code for J key (0x006a).",
+              range: range,
+            },
+            {
+              label: "a_k",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_k$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for K key (0x006b).",
+              range: range,
+            },
+            {
+              label: "a_l",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_l$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for L key (0x006c).",
+              range: range,
+            },
+            {
+              label: "a_m",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_m$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for M key (0x006d).",
+              range: range,
+            },
+            {
+              label: "a_n",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_n$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for N key (0x006e).",
+              range: range,
+            },
+            {
+              label: "a_o",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_o$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for O key (0x006f).",
+              range: range,
+            },
+            {
+              label: "a_q",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_q$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for Q key (0x0071).",
+              range: range,
+            },
+            {
+              label: "a_t",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_t$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for T key (0x0074).",
+              range: range,
+            },
+            {
+              label: "a_u",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_u$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for U key (0x0075).",
+              range: range,
+            },
+            {
+              label: "a_v",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_v$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for V key (0x0076).",
+              range: range,
+            },
+            {
+              label: "a_x",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_x$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for X key (0x0078).",
+              range: range,
+            },
+            {
+              label: "a_y",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_y$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for Y key (0x0079).",
+              range: range,
+            },
+            {
+              label: "a_z",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_z$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for Z key (0x007a).",
+              range: range,
+            },
+            {
+              label: "a_0",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_0$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 0 key (0x0030).",
+              range: range,
+            },
+            {
+              label: "a_1",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_1$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 1 key (0x0031).",
+              range: range,
+            },
+            {
+              label: "a_2",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_2$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 2 key (0x0032).",
+              range: range,
+            },
+            {
+              label: "a_3",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_3$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 3 key (0x0033).",
+              range: range,
+            },
+            {
+              label: "a_4",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_4$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 4 key (0x0034).",
+              range: range,
+            },
+            {
+              label: "a_5",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_5$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 5 key (0x0035).",
+              range: range,
+            },
+            {
+              label: "a_6",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_6$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 6 key (0x0036).",
+              range: range,
+            },
+            {
+              label: "a_7",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_7$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 7 key (0x0037).",
+              range: range,
+            },
+            {
+              label: "a_8",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_8$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 8 key (0x0038).",
+              range: range,
+            },
+            {
+              label: "a_9",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_9$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for 9 key (0x0039).",
+              range: range,
+            },
+            {
+              label: "a_excl",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_excl$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for exclamation mark (0x0021).",
+              range: range,
+            },
+            {
+              label: "a_quot",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_quot$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for double quote (0x0022).",
+              range: range,
+            },
+            {
+              label: "a_hash",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_hash$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for hash (0x0023).",
+              range: range,
+            },
+            {
+              label: "a_dollar",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_dollar$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for dollar sign (0x0024).",
+              range: range,
+            },
+            {
+              label: "a_percent",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_percent$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for percent (0x0025).",
+              range: range,
+            },
+            {
+              label: "a_amp",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_amp$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for ampersand (0x0026).",
+              range: range,
+            },
+            {
+              label: "a_squote",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_squote$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for single quote (0x0027).",
+              range: range,
+            },
+            {
+              label: "a_lparen",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_lparen$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for left parenthesis (0x0028).",
+              range: range,
+            },
+            {
+              label: "a_rparen",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_rparen$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for right parenthesis (0x0029).",
+              range: range,
+            },
+            {
+              label: "a_asterisk",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_asterisk$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for asterisk (0x002a).",
+              range: range,
+            },
+            {
+              label: "a_plus",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_plus$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for plus (0x002b).",
+              range: range,
+            },
+            {
+              label: "a_comma",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_comma$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for comma (0x002c).",
+              range: range,
+            },
+            {
+              label: "a_minus",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_minus$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for minus (0x002d).",
+              range: range,
+            },
+            {
+              label: "a_dot",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_dot$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for period (0x002e).",
+              range: range,
+            },
+            {
+              label: "a_slash",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_slash$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for forward slash (0x002f).",
+              range: range,
+            },
+            {
+              label: "a_colon",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_colon$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for colon (0x003a).",
+              range: range,
+            },
+            {
+              label: "a_semicolon",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_semicolon$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for semicolon (0x003b).",
+              range: range,
+            },
+            {
+              label: "a_less",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_less$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for less than (0x003c).",
+              range: range,
+            },
+            {
+              label: "a_equal",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_equal$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for equal (0x003d).",
+              range: range,
+            },
+            {
+              label: "a_greater",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_greater$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for greater than (0x003e).",
+              range: range,
+            },
+            {
+              label: "a_question",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_question$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for question mark (0x003f).",
+              range: range,
+            },
+            {
+              label: "a_at",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_at$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for at symbol (0x0040).",
+              range: range,
+            },
+            {
+              label: "a_lbracket",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_lbracket$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for left square bracket (0x005b).",
+              range: range,
+            },
+            {
+              label: "a_backslash",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_backslash$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for backslash (0x005c).",
+              range: range,
+            },
+            {
+              label: "a_rbracket",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_rbracket$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for right square bracket (0x005d).",
+              range: range,
+            },
+            {
+              label: "a_caret",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_caret$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for caret (0x005e).",
+              range: range,
+            },
+            {
+              label: "a_underscore",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_underscore$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for underscore (0x005f).",
+              range: range,
+            },
+            {
+              label: "a_backtick",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_backtick$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for backtick (0x0060).",
+              range: range,
+            },
+            {
+              label: "a_lbrace",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_lbrace$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for left curly brace (0x007b).",
+              range: range,
+            },
+            {
+              label: "a_pipe",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_pipe$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for pipe (0x007c).",
+              range: range,
+            },
+            {
+              label: "a_rbrace",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_rbrace$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for right curly brace (0x007d).",
+              range: range,
+            },
+            {
+              label: "a_tilde",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_tilde$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for tilde (0x007e).",
+              range: range,
+            },
+            {
+              label: "a_enter",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_enter$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for enter/return key (0xff0d).",
+              range: range,
+            },
+            {
+              label: "a_shift",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_shift$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for shift key (left shift) (0xffe1).",
+              range: range,
+            },
+            {
+              label: "a_ctrl",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_ctrl$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for control key (left ctrl) (0xffe3).",
+              range: range,
+            },
+            {
+              label: "a_alt",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_alt$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for alt key (left alt) (0xffe9).",
+              range: range,
+            },
+            {
+              label: "a_tab",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_tab$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for tab key (0xff09).",
+              range: range,
+            },
+            {
+              label: "a_capslock",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_capslock$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for caps lock key (0xffe5).",
+              range: range,
+            },
+            {
+              label: "a_backspace",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "a_backspace$0",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Key code for backspace key (0xff08).",
               range: range,
             },
           ],
